@@ -1,69 +1,68 @@
 import 'package:flutter/material.dart';
 
 class AppColors {
-  static const Color ink = Color(0xFF08234A);
-  static const Color cream = Color(0xFFF3F7FC);
-  static const Color paper = Color(0xFFFFFFFF);
-  static const Color coral = Color(0xFFE0A11A);
-  static const Color sunshine = Color(0xFFE9AF22);
-  static const Color mint = Color(0xFF4FA8C7);
-  static const Color sky = Color(0xFF0B5EB8);
-  static const Color muted = Color(0xFF5A6A80);
-  static const Color navy = Color(0xFF073B7A);
-  static const Color blue = Color(0xFF0B5EB8);
-  static const Color blueDeep = Color(0xFF06306A);
-  static const Color gold = Color(0xFFE0A11A);
-  static const Color goldSoft = Color(0xFFFFF1C7);
+  static const Color green900 = Color(0xFF063B25);
+  static const Color green800 = Color(0xFF0B5A36);
+  static const Color green700 = Color(0xFF0F6F42);
+  static const Color green600 = Color(0xFF168A4A);
+  static const Color green100 = Color(0xFFDFF3E7);
+  static const Color green50 = Color(0xFFF2FAF5);
+  static const Color ink = Color(0xFF14221B);
+  static const Color muted = Color(0xFF62746B);
+  static const Color line = Color(0xFFD9E8DF);
+  static const Color surface = Color(0xFFFFFFFF);
+  static const Color canvas = Color(0xFFF7FBF6);
+  static const Color amber = Color(0xFFF4B63F);
+  static const Color red = Color(0xFFD94A3A);
+  static const Color blue = Color(0xFF2F80C0);
+  static const Color gray = Color(0xFF87928D);
 
-  // Existing names are kept so older screens inherit the refreshed palette.
-  static const Color primary1 = navy;
-  static const Color primary2 = blue;
-  static const Color primary3 = mint;
-  static const Color primary4 = goldSoft;
-  static const Color errorRed = Color(0xFFC93E32);
-  static const Color successGreen = Color(0xFF1F8A5B);
-  static const Color white = Color(0xFFFFFFFF);
+  static const Color white = surface;
   static const Color black = ink;
+  static const Color successGreen = green600;
+  static const Color errorRed = red;
   static const Color darkGray = muted;
-  static const Color lightGray = cream;
-  static const Color borderGray = Color(0xFFD6E2F0);
+  static const Color lightGray = canvas;
+  static const Color borderGray = line;
 }
 
 class AppTheme {
   static ThemeData get lightTheme {
     const scheme = ColorScheme(
       brightness: Brightness.light,
-      primary: AppColors.blue,
+      primary: AppColors.green600,
       onPrimary: AppColors.white,
-      primaryContainer: AppColors.navy,
-      onPrimaryContainer: AppColors.white,
-      secondary: AppColors.gold,
+      primaryContainer: AppColors.green100,
+      onPrimaryContainer: AppColors.green900,
+      secondary: AppColors.amber,
       onSecondary: AppColors.ink,
-      secondaryContainer: AppColors.primary4,
+      secondaryContainer: Color(0xFFFFF3D0),
       onSecondaryContainer: AppColors.ink,
-      tertiary: AppColors.mint,
+      tertiary: AppColors.blue,
       onTertiary: AppColors.white,
-      tertiaryContainer: Color(0xFFDCEEFF),
+      tertiaryContainer: Color(0xFFDDEEFF),
       onTertiaryContainer: AppColors.ink,
-      error: AppColors.errorRed,
+      error: AppColors.red,
       onError: AppColors.white,
-      errorContainer: Color(0xFFF8DCD8),
-      onErrorContainer: AppColors.errorRed,
-      outline: AppColors.borderGray,
-      surface: AppColors.paper,
+      errorContainer: Color(0xFFFFE2DE),
+      onErrorContainer: AppColors.red,
+      outline: AppColors.line,
+      surface: AppColors.surface,
       onSurface: AppColors.ink,
-      surfaceContainerHighest: AppColors.cream,
+      surfaceContainerHighest: AppColors.green50,
       onSurfaceVariant: AppColors.muted,
     );
 
-    return ThemeData(
+    final base = ThemeData(
       useMaterial3: true,
       colorScheme: scheme,
-      scaffoldBackgroundColor: AppColors.cream,
+      scaffoldBackgroundColor: AppColors.canvas,
       fontFamily: 'Arial',
-      splashColor: AppColors.gold.withAlpha(55),
+    );
+
+    return base.copyWith(
       appBarTheme: const AppBarTheme(
-        backgroundColor: AppColors.cream,
+        backgroundColor: AppColors.canvas,
         foregroundColor: AppColors.ink,
         surfaceTintColor: Colors.transparent,
         elevation: 0,
@@ -71,42 +70,42 @@ class AppTheme {
         titleTextStyle: TextStyle(
           color: AppColors.ink,
           fontSize: 19,
-          fontWeight: FontWeight.w900,
-          letterSpacing: -0.5,
+          fontWeight: FontWeight.w800,
+          letterSpacing: 0,
         ),
       ),
       cardTheme: CardThemeData(
         elevation: 0,
-        margin: const EdgeInsets.only(bottom: 14),
-        color: AppColors.paper,
+        margin: EdgeInsets.zero,
+        color: AppColors.surface,
         surfaceTintColor: Colors.transparent,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(24),
-          side: const BorderSide(color: AppColors.borderGray),
+          borderRadius: BorderRadius.circular(8),
+          side: const BorderSide(color: AppColors.line),
         ),
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: AppColors.paper,
+        fillColor: AppColors.surface,
         contentPadding: const EdgeInsets.symmetric(
-          horizontal: 18,
-          vertical: 16,
+          horizontal: 14,
+          vertical: 14,
         ),
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(18),
-          borderSide: const BorderSide(color: AppColors.borderGray),
+          borderRadius: BorderRadius.circular(8),
+          borderSide: const BorderSide(color: AppColors.line),
         ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(18),
-          borderSide: const BorderSide(color: AppColors.borderGray),
+          borderRadius: BorderRadius.circular(8),
+          borderSide: const BorderSide(color: AppColors.line),
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(18),
-          borderSide: const BorderSide(color: AppColors.ink, width: 2),
+          borderRadius: BorderRadius.circular(8),
+          borderSide: const BorderSide(color: AppColors.green600, width: 1.6),
         ),
         errorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(18),
-          borderSide: const BorderSide(color: AppColors.errorRed),
+          borderRadius: BorderRadius.circular(8),
+          borderSide: const BorderSide(color: AppColors.red),
         ),
         labelStyle: const TextStyle(
           color: AppColors.muted,
@@ -116,87 +115,106 @@ class AppTheme {
       ),
       filledButtonTheme: FilledButtonThemeData(
         style: FilledButton.styleFrom(
-          backgroundColor: AppColors.blue,
+          backgroundColor: AppColors.green600,
           foregroundColor: AppColors.white,
-          minimumSize: const Size(0, 50),
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
-          shape: const StadiumBorder(),
+          minimumSize: const Size(0, 46),
+          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 13),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
           textStyle: const TextStyle(
             fontSize: 14,
             fontWeight: FontWeight.w800,
-            letterSpacing: 0.1,
+            letterSpacing: 0,
           ),
         ),
       ),
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
-          foregroundColor: AppColors.blueDeep,
-          minimumSize: const Size(0, 50),
-          side: const BorderSide(color: AppColors.blue, width: 1.5),
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
-          shape: const StadiumBorder(),
+          foregroundColor: AppColors.green700,
+          minimumSize: const Size(0, 46),
+          side: const BorderSide(color: AppColors.green600, width: 1.2),
+          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 13),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
           textStyle: const TextStyle(fontSize: 14, fontWeight: FontWeight.w800),
         ),
       ),
       textButtonTheme: TextButtonThemeData(
         style: TextButton.styleFrom(
-          foregroundColor: AppColors.blueDeep,
+          foregroundColor: AppColors.green700,
           textStyle: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
         ),
       ),
       chipTheme: ChipThemeData(
-        backgroundColor: AppColors.primary4,
+        backgroundColor: AppColors.green100,
+        selectedColor: AppColors.green600,
         side: BorderSide.none,
-        shape: const StadiumBorder(),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
         labelStyle: const TextStyle(
           color: AppColors.ink,
-          fontWeight: FontWeight.w800,
-          fontSize: 11,
+          fontWeight: FontWeight.w700,
+          fontSize: 12,
         ),
       ),
+      navigationRailTheme: const NavigationRailThemeData(
+        backgroundColor: AppColors.surface,
+        selectedIconTheme: IconThemeData(color: AppColors.green600),
+        selectedLabelTextStyle: TextStyle(
+          color: AppColors.green700,
+          fontWeight: FontWeight.w800,
+        ),
+        unselectedIconTheme: IconThemeData(color: AppColors.muted),
+        unselectedLabelTextStyle: TextStyle(color: AppColors.muted),
+      ),
+      bottomNavigationBarTheme: const BottomNavigationBarThemeData(
+        backgroundColor: AppColors.surface,
+        selectedItemColor: AppColors.green600,
+        unselectedItemColor: AppColors.muted,
+        type: BottomNavigationBarType.fixed,
+      ),
+      dividerColor: AppColors.line,
       textTheme: const TextTheme(
         displayLarge: TextStyle(
-          fontSize: 52,
-          height: 0.95,
+          fontSize: 48,
+          height: 1,
           fontWeight: FontWeight.w900,
-          letterSpacing: -2.5,
+          letterSpacing: 0,
           color: AppColors.ink,
         ),
         displayMedium: TextStyle(
-          fontSize: 40,
-          height: 1,
+          fontSize: 36,
+          height: 1.05,
           fontWeight: FontWeight.w900,
-          letterSpacing: -1.8,
+          letterSpacing: 0,
           color: AppColors.ink,
         ),
         displaySmall: TextStyle(
           fontSize: 30,
-          height: 1.05,
+          height: 1.1,
           fontWeight: FontWeight.w900,
-          letterSpacing: -1,
+          letterSpacing: 0,
           color: AppColors.ink,
         ),
         headlineMedium: TextStyle(
           fontSize: 24,
           fontWeight: FontWeight.w900,
-          letterSpacing: -0.8,
+          letterSpacing: 0,
           color: AppColors.ink,
         ),
         headlineSmall: TextStyle(
-          fontSize: 21,
+          fontSize: 20,
           fontWeight: FontWeight.w900,
-          letterSpacing: -0.6,
+          letterSpacing: 0,
           color: AppColors.ink,
         ),
         titleLarge: TextStyle(
           fontSize: 18,
           fontWeight: FontWeight.w900,
-          letterSpacing: -0.4,
+          letterSpacing: 0,
           color: AppColors.ink,
         ),
         titleMedium: TextStyle(
           fontSize: 15,
           fontWeight: FontWeight.w800,
+          letterSpacing: 0,
           color: AppColors.ink,
         ),
         bodyLarge: TextStyle(
@@ -211,17 +229,18 @@ class AppTheme {
           fontWeight: FontWeight.w500,
           color: AppColors.muted,
         ),
+        bodySmall: TextStyle(
+          fontSize: 12,
+          height: 1.35,
+          fontWeight: FontWeight.w500,
+          color: AppColors.muted,
+        ),
         labelLarge: TextStyle(
           fontSize: 12,
           fontWeight: FontWeight.w800,
+          letterSpacing: 0,
           color: AppColors.ink,
         ),
-      ),
-      iconTheme: const IconThemeData(color: AppColors.ink, size: 24),
-      dividerColor: AppColors.borderGray,
-      dividerTheme: const DividerThemeData(
-        color: AppColors.borderGray,
-        thickness: 1,
       ),
     );
   }

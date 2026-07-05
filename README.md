@@ -1,106 +1,98 @@
-# SibilPrep
+# Aps pickle zone
 
-Flutter Civil Service exam preparation quiz app backed by Supabase.
+Aps pickle zone is a Flutter Pickleball Court Rental Management System backed by Supabase Auth, PostgreSQL, Storage, Row Level Security, and Realtime updates.
 
-## Supabase setup
+## Features
 
-1. Create a Supabase project.
-2. In **Authentication > Providers > Email**, disable **Confirm email**. The app turns usernames into internal `@users.cscquiz.app` auth addresses, so users cannot receive confirmation emails.
-3. Open the Supabase SQL Editor and run [`supabase/schema.sql`](supabase/schema.sql). Re-run this file after pulling schema changes. It creates the tables, Row Level Security policies, profile trigger, admin approval function, exam catalog, starter questions, and question-integrity guardrails.
-4. The app includes the current public Supabase URL and anon key as a fallback. You can override them locally with dart defines:
+- Public landing, about, rates, login, and registration pages
+- Customer dashboard, court booking, availability schedule, booking history, payment-proof upload, notifications, leaderboard, and profile editing
+- Admin dashboard, booking verification, customer management, court status controls, active rental monitor, reports, maintenance scheduling, leaderboard, and activity logs
+- Exactly 3 seeded courts: Court 1, Court 2, and Court 3
+- Court rate: ₱250.00 per court per hour
+- Asia/Manila booking calculations and live rental countdowns
+- Private Supabase Storage buckets for payment proofs and profile images
+- SQL validation to prevent overlapping pending, approved, or active bookings
 
-```powershell
-C:\flutter\bin\flutter.bat run `
-  --dart-define=SUPABASE_URL=https://YOUR_PROJECT.supabase.co `
-  --dart-define=SUPABASE_ANON_KEY=YOUR_PUBLIC_ANON_KEY
-```
+## Supabase Setup
 
-Use only the public publishable/anon key in the Flutter app. Never put the Supabase service-role key in client code.
-
-The first account created after applying the schema becomes the administrator automatically. Every later user can create an account normally, then waits for an administrator to approve it from the Admin Dashboard.
-
-Pending users cannot access the quiz dashboard until an administrator approves them. Administrators can also reject accounts that should not have access.
-
-## Question import safety
-
-The schema now blocks new question rows whose selected area does not belong to the selected exam type, or whose specific field does not belong to the selected area. If you already imported PDF/doc questions and suspect bad rows, sign in as an administrator and run this in the Supabase SQL Editor:
-
-```sql
-select *
-from public.find_question_integrity_issues();
-```
-
-Fix or delete any returned rows, then run these checks when the result is empty:
-
-```sql
-alter table public.questions validate constraint questions_area_matches_exam_type;
-alter table public.questions validate constraint questions_sub_area_matches_area;
-```
-
-## Vercel deployment
-
-In Vercel, these Environment Variables are optional because the app has public fallback values. Add them for Production, Preview, and Development if you want to override the defaults:
-
-- `SUPABASE_URL`
-- `SUPABASE_ANON_KEY`
-
-The project uses [`vercel.json`](vercel.json) and [`scripts/vercel-build.sh`](scripts/vercel-build.sh). Vercel will build Flutter web into `build/web`.
-
-## GitHub
-
-The GitHub Actions workflow in [`.github/workflows/flutter-ci.yml`](.github/workflows/flutter-ci.yml) runs `flutter analyze`, `flutter test`, and a Flutter web build on pushes and pull requests to `main`.
-
-If registration reports an email rate limit, confirm that **Confirm email** is disabled. Supabase's built-in email service permits only a small number of emails per hour. Delete any pending unconfirmed test user before registering that username again.
-
-## Promote an additional administrator
-
-The first completed registration becomes the initial administrator automatically. To promote another approved account, open the Supabase **SQL Editor** and inspect the existing accounts:
-
-```sql
-select id, full_name, username, role
-from public.profiles
-order by id;
-```
-
-Promote the required account by username:
+1. Use the Supabase project/database named `apspickleball`, or create it if it does not exist yet.
+2. In **Authentication > Providers > Email**, configure email/password auth. For local testing, disabling email confirmation makes registration immediate.
+3. Open the Supabase SQL Editor and run [`supabase/schema.sql`](supabase/schema.sql).
+4. The first registered user becomes the initial admin automatically. All later users are customers.
+5. Create your admin account from the app registration page after applying the schema. Use a real email address accepted by Supabase Auth. If it is the first registered account, it becomes admin automatically. If another account was created first, promote your account with:
 
 ```sql
 update public.profiles
 set role = 'admin'
-where username = 'cmkhel';
+where email = 'your-real-admin-email@example.com';
 ```
 
-Verify the role:
+The schema creates tables, validation triggers, RLS policies, storage buckets, storage policies, helper RPC functions, seeded courts, and the configurable `max_rental_hours` setting.
+
+If login says the email needs confirmation, use one of these setup fixes in Supabase:
+
+- For development, open **Authentication > Providers > Email** and turn off **Confirm email**.
+- Or manually confirm a test account in the SQL Editor:
 
 ```sql
-select username, role
-from public.profiles
-where username = 'cmkhel';
+update auth.users
+set email_confirmed_at = coalesce(email_confirmed_at, now()),
+    updated_at = now()
+where email = 'your-real-admin-email@example.com';
 ```
 
-Log out of the app and log in again as `cmkhel`. The app will open the **Admin Dashboard**.
+## Environment
 
-To remove administrator access later:
-
-```sql
-update public.profiles
-set role = 'user'
-where username = 'cmkhel';
-```
-
-## Included features
-
-- Supabase Auth username-based login and registration
-- Administrator approval or rejection for new registrations
-- Professional and Sub-Professional quiz levels
-- Overall, area, and specific-topic quizzes
-- Timed questions, result review, and progress analytics
-- Admin question management and user-result reporting
-- Supabase persistence with Row Level Security
-
-## Verification
+Copy [`.env.example`](.env.example) values into your deployment environment. For local Flutter runs, pass them as dart defines:
 
 ```powershell
-C:\flutter\bin\flutter.bat analyze --no-fatal-infos
+C:\flutter\bin\flutter.bat run `
+  --dart-define=SUPABASE_URL=https://YOUR_PROJECT.supabase.co `
+  --dart-define=SUPABASE_ANON_KEY=YOUR_PUBLIC_ANON_OR_PUBLISHABLE_KEY
+```
+
+For quick local runs from an IDE, you can also edit [`assets/config/supabase.json`](assets/config/supabase.json):
+
+```json
+{
+  "SUPABASE_URL": "https://YOUR_PROJECT_REF.supabase.co",
+  "SUPABASE_ANON_KEY": "YOUR_PUBLIC_ANON_OR_PUBLISHABLE_KEY"
+}
+```
+
+The database name `apspickleball` is not the Supabase URL. In Supabase, copy the **Project URL** and **anon public key** from **Project Settings > API**.
+
+For Vercel, add these environment variables for Production, Preview, and Development:
+
+- `SUPABASE_URL`
+- `SUPABASE_ANON_KEY`
+
+## Local Development
+
+```powershell
+C:\flutter\bin\flutter.bat pub get
+C:\flutter\bin\flutter.bat analyze
 C:\flutter\bin\flutter.bat test
 ```
+
+## Business Rules
+
+- Customers can reserve one court for one or more hours when the slot is available.
+- Default maximum rental duration is 4 hours. Change it in `public.app_settings`.
+- A booking stays pending until an admin verifies the uploaded payment proof.
+- Pending, approved, and active bookings block overlapping reservations for the same court and time.
+- Maintenance blocks prevent new bookings in the affected time range.
+- Admin actions are recorded in `admin_activity_logs`.
+
+## Verification Checklist
+
+- Register the first account and confirm it opens the admin dashboard.
+- Register a customer account and create a booking request.
+- Upload a JPG, PNG, or PDF payment proof from the booking details page.
+- Approve or decline the booking from admin booking management.
+- Confirm the customer receives notifications after approval or decline.
+- Test availability blocking by trying the same court and time again.
+- Let an approved booking reach its start time and confirm the active countdown appears.
+- Check Player of the Week after marking rentals completed.
+- Review daily, weekly, and monthly revenue on the reports page.
+- Resize the app to mobile width and verify drawer navigation and forms remain usable.

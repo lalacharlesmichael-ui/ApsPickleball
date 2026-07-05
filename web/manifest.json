@@ -1,11 +1,11 @@
 {
-    "name": "SibilPrep",
-    "short_name": "SibilPrep",
+    "name": "Aps pickle zone",
+    "short_name": "Aps pickle zone",
     "start_url": ".",
     "display": "standalone",
-    "background_color": "#F3F7FC",
-    "theme_color": "#0B5EB8",
-    "description": "Civil Service exam preparation quizzes.",
+    "background_color": "#F7FBF6",
+    "theme_color": "#168A4A",
+    "description": "Aps pickle zone court rental reservations, payments, and court operations.",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [
