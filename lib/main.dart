@@ -1,7 +1,9 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'app_scope.dart';
@@ -15,8 +17,9 @@ import 'widgets.dart';
 
 const supabaseUrl = String.fromEnvironment('SUPABASE_URL');
 const supabaseAnonKey = String.fromEnvironment('SUPABASE_ANON_KEY');
-const appName = 'Aps pickle zone';
+const appName = 'Aps Pickle Zone';
 const _supabaseConfigAsset = 'assets/config/supabase.json';
+const _darkModeStorageKey = 'aps_pickle_zone_dark_mode';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -123,8 +126,22 @@ class StartupErrorApp extends StatelessWidget {
   }
 }
 
-class ApsPickleZoneApp extends StatelessWidget {
+class ApsPickleZoneApp extends StatefulWidget {
   const ApsPickleZoneApp({super.key});
+
+  @override
+  State<ApsPickleZoneApp> createState() => _ApsPickleZoneAppState();
+}
+
+class _ApsPickleZoneAppState extends State<ApsPickleZoneApp> {
+  final SharedPreferencesAsync _preferences = SharedPreferencesAsync();
+  bool _darkMode = false;
+
+  @override
+  void initState() {
+    super.initState();
+    unawaited(_loadThemeMode());
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -132,13 +149,45 @@ class ApsPickleZoneApp extends StatelessWidget {
       title: appName,
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,
-      home: const GateScreen(),
+      darkTheme: AppTheme.darkTheme,
+      themeMode: _darkMode ? ThemeMode.dark : ThemeMode.light,
+      home: GateScreen(isDarkMode: _darkMode, onDarkModeChanged: _setDarkMode),
     );
+  }
+
+  Future<void> _loadThemeMode() async {
+    try {
+      final savedDarkMode = await _preferences.getBool(_darkModeStorageKey);
+      if (!mounted || savedDarkMode == null) return;
+      setState(() => _darkMode = savedDarkMode);
+    } catch (_) {
+      // Theme choice is a comfort preference; keep the default if storage fails.
+    }
+  }
+
+  void _setDarkMode(bool value) {
+    setState(() => _darkMode = value);
+    unawaited(_saveThemeMode(value));
+  }
+
+  Future<void> _saveThemeMode(bool value) async {
+    try {
+      await _preferences.setBool(_darkModeStorageKey, value);
+    } catch (_) {
+      // The toggle should still work for the current session if storage fails.
+    }
   }
 }
 
 class GateScreen extends StatelessWidget {
-  const GateScreen({super.key});
+  const GateScreen({
+    super.key,
+    required this.isDarkMode,
+    required this.onDarkModeChanged,
+  });
+
+  final bool isDarkMode;
+  final ValueChanged<bool> onDarkModeChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -147,18 +196,35 @@ class GateScreen extends StatelessWidget {
       return const _LoadingScreen();
     }
     if (!store.isAuthenticated || store.currentProfile == null) {
-      return PublicShell(errorMessage: store.errorMessage);
+      return PublicShell(
+        errorMessage: store.errorMessage,
+        isDarkMode: isDarkMode,
+        onDarkModeChanged: onDarkModeChanged,
+      );
     }
     return store.currentProfile!.role == AppRole.admin
-        ? const AdminShell()
-        : const CustomerShell();
+        ? AdminShell(
+            isDarkMode: isDarkMode,
+            onDarkModeChanged: onDarkModeChanged,
+          )
+        : CustomerShell(
+            isDarkMode: isDarkMode,
+            onDarkModeChanged: onDarkModeChanged,
+          );
   }
 }
 
 class PublicShell extends StatefulWidget {
-  const PublicShell({super.key, this.errorMessage});
+  const PublicShell({
+    super.key,
+    this.errorMessage,
+    required this.isDarkMode,
+    required this.onDarkModeChanged,
+  });
 
   final String? errorMessage;
+  final bool isDarkMode;
+  final ValueChanged<bool> onDarkModeChanged;
 
   @override
   State<PublicShell> createState() => _PublicShellState();
@@ -206,20 +272,24 @@ class _PublicShellState extends State<PublicShell> {
         return Scaffold(
           appBar: AppBar(
             title: const BrandMark(),
-            actions: compact
-                ? null
-                : [
-                    for (var i = 0; i < items.length; i++)
-                      Padding(
-                        padding: const EdgeInsets.only(right: 6),
-                        child: TextButton.icon(
-                          onPressed: () => setState(() => _selected = i),
-                          icon: Icon(items[i].icon, size: 18),
-                          label: Text(items[i].label),
-                        ),
-                      ),
-                    const SizedBox(width: 8),
-                  ],
+            actions: [
+              _ThemeModeButton(
+                isDarkMode: widget.isDarkMode,
+                onChanged: widget.onDarkModeChanged,
+              ),
+              if (!compact) ...[
+                for (var i = 0; i < items.length; i++)
+                  Padding(
+                    padding: const EdgeInsets.only(right: 6),
+                    child: TextButton.icon(
+                      onPressed: () => setState(() => _selected = i),
+                      icon: Icon(items[i].icon, size: 18),
+                      label: Text(items[i].label),
+                    ),
+                  ),
+              ],
+              const SizedBox(width: 8),
+            ],
           ),
           drawer: compact
               ? Drawer(
@@ -267,6 +337,7 @@ class _PublicShellState extends State<PublicShell> {
                   ),
                 ),
               ),
+              const _MadeByFooter(),
             ],
           ),
         );
@@ -275,8 +346,37 @@ class _PublicShellState extends State<PublicShell> {
   }
 }
 
+class _MadeByFooter extends StatelessWidget {
+  const _MadeByFooter();
+
+  @override
+  Widget build(BuildContext context) {
+    return SafeArea(
+      top: false,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 6, 16, 12),
+        child: Text(
+          'Made by Charles Michael',
+          textAlign: TextAlign.center,
+          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+            color: AppTheme.mutedText(context),
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class CustomerShell extends StatefulWidget {
-  const CustomerShell({super.key});
+  const CustomerShell({
+    super.key,
+    required this.isDarkMode,
+    required this.onDarkModeChanged,
+  });
+
+  final bool isDarkMode;
+  final ValueChanged<bool> onDarkModeChanged;
 
   @override
   State<CustomerShell> createState() => _CustomerShellState();
@@ -332,12 +432,21 @@ class _CustomerShellState extends State<CustomerShell> {
       items: items,
       selected: _selected,
       onSelected: (value) => setState(() => _selected = value),
+      isDarkMode: widget.isDarkMode,
+      onDarkModeChanged: widget.onDarkModeChanged,
     );
   }
 }
 
 class AdminShell extends StatefulWidget {
-  const AdminShell({super.key});
+  const AdminShell({
+    super.key,
+    required this.isDarkMode,
+    required this.onDarkModeChanged,
+  });
+
+  final bool isDarkMode;
+  final ValueChanged<bool> onDarkModeChanged;
 
   @override
   State<AdminShell> createState() => _AdminShellState();
@@ -401,6 +510,8 @@ class _AdminShellState extends State<AdminShell> {
       items: items,
       selected: _selected,
       onSelected: (value) => setState(() => _selected = value),
+      isDarkMode: widget.isDarkMode,
+      onDarkModeChanged: widget.onDarkModeChanged,
     );
   }
 }
@@ -410,11 +521,15 @@ class _AuthenticatedShell extends StatelessWidget {
     required this.items,
     required this.selected,
     required this.onSelected,
+    required this.isDarkMode,
+    required this.onDarkModeChanged,
   });
 
   final List<_NavItem> items;
   final int selected;
   final ValueChanged<int> onSelected;
+  final bool isDarkMode;
+  final ValueChanged<bool> onDarkModeChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -426,6 +541,10 @@ class _AuthenticatedShell extends StatelessWidget {
           appBar: AppBar(
             title: const BrandMark(),
             actions: [
+              _ThemeModeButton(
+                isDarkMode: isDarkMode,
+                onChanged: onDarkModeChanged,
+              ),
               Stack(
                 alignment: Alignment.topRight,
                 children: [
@@ -566,6 +685,24 @@ class _LoadingScreen extends StatelessWidget {
             CircularProgressIndicator(),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _ThemeModeButton extends StatelessWidget {
+  const _ThemeModeButton({required this.isDarkMode, required this.onChanged});
+
+  final bool isDarkMode;
+  final ValueChanged<bool> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return IconButton(
+      tooltip: isDarkMode ? 'Switch to light mode' : 'Switch to dark mode',
+      onPressed: () => onChanged(!isDarkMode),
+      icon: Icon(
+        isDarkMode ? Icons.light_mode_rounded : Icons.dark_mode_rounded,
       ),
     );
   }

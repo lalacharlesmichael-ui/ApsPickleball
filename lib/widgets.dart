@@ -14,6 +14,7 @@ class BrandMark extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -21,7 +22,7 @@ class BrandMark extends StatelessWidget {
           width: compact ? 34 : 42,
           height: compact ? 34 : 42,
           decoration: BoxDecoration(
-            color: AppColors.ink,
+            color: scheme.onSurface,
             borderRadius: BorderRadius.circular(8),
           ),
           clipBehavior: Clip.antiAlias,
@@ -30,9 +31,9 @@ class BrandMark extends StatelessWidget {
         if (!compact) ...[
           const SizedBox(width: 10),
           Text(
-            'Aps pickle zone',
+            'Aps Pickle Zone',
             style: Theme.of(context).textTheme.titleLarge?.copyWith(
-              color: AppColors.green900,
+              color: AppTheme.brandText(context),
               fontWeight: FontWeight.w900,
             ),
           ),
@@ -57,7 +58,7 @@ class AppCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Card(
-      color: color,
+      color: AppTheme.adaptiveSurfaceColor(context, color),
       child: Padding(padding: padding, child: child),
     );
   }
@@ -119,6 +120,7 @@ class StatCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final tintAlpha = AppTheme.isDark(context) ? 46 : 26;
     return AppCard(
       child: Row(
         children: [
@@ -126,7 +128,7 @@ class StatCard extends StatelessWidget {
             width: 42,
             height: 42,
             decoration: BoxDecoration(
-              color: accent.withAlpha(26),
+              color: accent.withAlpha(tintAlpha),
               borderRadius: BorderRadius.circular(8),
             ),
             child: Icon(icon, color: accent, size: 22),
@@ -178,10 +180,11 @@ class StatusBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final tintAlpha = AppTheme.isDark(context) ? 46 : 28;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
       decoration: BoxDecoration(
-        color: color.withAlpha(28),
+        color: color.withAlpha(tintAlpha),
         borderRadius: BorderRadius.circular(8),
         border: Border.all(color: color.withAlpha(80)),
       ),
@@ -335,13 +338,20 @@ class CountdownTimer extends StatelessWidget {
         ? false
         : true;
     final text = finished ? 'Finished' : durationText(remaining);
+    final colorScheme = Theme.of(context).colorScheme;
+    final background = finished
+        ? colorScheme.errorContainer
+        : AppTheme.successContainer(context);
+    final foreground = finished
+        ? colorScheme.onErrorContainer
+        : AppTheme.successOnContainer(context);
     return Container(
       padding: EdgeInsets.symmetric(
         horizontal: compact ? 8 : 12,
         vertical: compact ? 5 : 8,
       ),
       decoration: BoxDecoration(
-        color: finished ? AppColors.red.withAlpha(24) : AppColors.green100,
+        color: background,
         borderRadius: BorderRadius.circular(8),
       ),
       child: Row(
@@ -350,13 +360,13 @@ class CountdownTimer extends StatelessWidget {
           Icon(
             finished ? Icons.timer_off_rounded : Icons.timer_rounded,
             size: compact ? 16 : 18,
-            color: finished ? AppColors.red : AppColors.green700,
+            color: foreground,
           ),
           const SizedBox(width: 7),
           Text(
             text,
             style: TextStyle(
-              color: finished ? AppColors.red : AppColors.green800,
+              color: foreground,
               fontWeight: FontWeight.w900,
               fontSize: compact ? 12 : 14,
             ),
@@ -427,12 +437,12 @@ class BookingTile extends StatelessWidget {
           width: 42,
           height: 42,
           decoration: BoxDecoration(
-            color: AppColors.green100,
+            color: AppTheme.iconTileBackground(context),
             borderRadius: BorderRadius.circular(8),
           ),
-          child: const Icon(
+          child: Icon(
             Icons.sports_tennis_rounded,
-            color: AppColors.green700,
+            color: AppTheme.iconTileForeground(context),
           ),
         ),
         title: Text(

@@ -1,6 +1,6 @@
-# Aps pickle zone
+# Aps Pickle Zone
 
-Aps pickle zone is a Flutter Pickleball Court Rental Management System backed by Supabase Auth, PostgreSQL, Storage, Row Level Security, and Realtime updates.
+Aps Pickle Zone is a Flutter Pickleball Court Rental Management System backed by Supabase Auth, PostgreSQL, Storage, Row Level Security, and Realtime updates.
 
 ## Features
 

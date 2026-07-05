@@ -33,16 +33,16 @@ class LandingPage extends StatelessWidget {
                 ),
                 const SizedBox(height: 16),
                 Text(
-                  'Aps pickle zone',
-                  style: Theme.of(
-                    context,
-                  ).textTheme.displayLarge?.copyWith(color: AppColors.green900),
+                  'Aps Pickle Zone',
+                  style: Theme.of(context).textTheme.displayLarge?.copyWith(
+                    color: AppTheme.brandText(context),
+                  ),
                 ),
                 const SizedBox(height: 10),
                 Text(
                   'Pickleball Court Rental Management System',
                   style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                    color: AppColors.green700,
+                    color: AppTheme.brandAccent(context),
                   ),
                 ),
                 const SizedBox(height: 14),
@@ -125,7 +125,7 @@ class AboutPage extends StatelessWidget {
       padding: const EdgeInsets.all(20),
       children: [
         const PageHeader(
-          title: 'About Aps pickle zone',
+          title: 'About Aps Pickle Zone',
           subtitle:
               'A modern booking desk for pickleball players and court administrators.',
         ),
@@ -139,7 +139,7 @@ class AboutPage extends StatelessWidget {
               ),
               const SizedBox(height: 10),
               Text(
-                'Aps pickle zone keeps reservations, payment verification, court maintenance, active rental timers, notifications, receipts, and reporting in one Supabase-backed system.',
+                'Aps Pickle Zone keeps reservations, payment verification, court maintenance, active rental timers, notifications, receipts, and reporting in one Supabase-backed system.',
                 style: Theme.of(context).textTheme.bodyLarge,
               ),
               const SizedBox(height: 18),
@@ -225,7 +225,7 @@ class _LoginPageState extends State<LoginPage> {
   Widget build(BuildContext context) {
     return _AuthPanel(
       title: 'Login',
-      subtitle: 'Open your Aps pickle zone dashboard.',
+      subtitle: 'Open your Aps Pickle Zone dashboard.',
       child: Form(
         key: _formKey,
         child: Column(
@@ -447,7 +447,7 @@ class _RegisterPageState extends State<RegisterPage> {
       if (!mounted) return;
       setState(() {
         _message =
-            'Registration successful. You can now use your Aps pickle zone dashboard.';
+            'Registration successful. You can now use your Aps Pickle Zone dashboard.';
         _isError = false;
       });
     } catch (error) {
