@@ -16,29 +16,31 @@ Aps pickle zone is a Flutter Pickleball Court Rental Management System backed by
 ## Supabase Setup
 
 1. Use the Supabase project/database named `apspickleball`, or create it if it does not exist yet.
-2. In **Authentication > Providers > Email**, configure email/password auth. For local testing, disabling email confirmation makes registration immediate.
+2. In **Authentication > Providers > Email**, keep email/password auth enabled and turn off **Confirm email** for username-only login. The app stores username in `public.profiles`; Supabase Auth keeps a generated internal auth email only in `auth.users` because its password endpoint requires an email identifier.
 3. Open the Supabase SQL Editor and run [`supabase/schema.sql`](supabase/schema.sql).
 4. The first registered user becomes the initial admin automatically. All later users are customers.
-5. Create your admin account from the app registration page after applying the schema. Use a real email address accepted by Supabase Auth. If it is the first registered account, it becomes admin automatically. If another account was created first, promote your account with:
+5. Create your admin account from the app registration page after applying the schema. If it is the first registered account, it becomes admin automatically. If another account was created first, promote your account with:
 
 ```sql
 update public.profiles
 set role = 'admin'
-where email = 'your-real-admin-email@example.com';
+where username = 'your_admin_username';
 ```
 
 The schema creates tables, validation triggers, RLS policies, storage buckets, storage policies, helper RPC functions, seeded courts, and the configurable `max_rental_hours` setting.
 
-If login says the email needs confirmation, use one of these setup fixes in Supabase:
+For an existing database, run [`supabase/username_only_profiles_patch.sql`](supabase/username_only_profiles_patch.sql) once to add/backfill usernames and remove `public.profiles.email` without dropping booking data.
 
-- For development, open **Authentication > Providers > Email** and turn off **Confirm email**.
-- Or manually confirm a test account in the SQL Editor:
+If login says the account needs confirmation, use one of these setup fixes in Supabase:
+
+- Open **Authentication > Providers > Email** and turn off **Confirm email**.
+- Or manually confirm a test account in the SQL Editor. Replace `your_username` with the username used in the app:
 
 ```sql
 update auth.users
 set email_confirmed_at = coalesce(email_confirmed_at, now()),
     updated_at = now()
-where email = 'your-real-admin-email@example.com';
+where email = 'apspicklezone+your_username@gmail.com';
 ```
 
 ## Environment

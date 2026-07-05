@@ -369,7 +369,7 @@ class _CustomerManagementPageState extends State<CustomerManagementPage> {
     final rows = store.customers.where((profile) {
       return query.isEmpty ||
           profile.fullName.toLowerCase().contains(query) ||
-          profile.email.toLowerCase().contains(query) ||
+          profile.username.toLowerCase().contains(query) ||
           (profile.contactNumber?.contains(query) ?? false);
     }).toList();
 
@@ -1001,7 +1001,7 @@ class _CustomerCard extends StatelessWidget {
                         style: Theme.of(context).textTheme.titleLarge,
                       ),
                       Text(
-                        '${profile.email}${profile.contactNumber == null ? '' : ' · ${profile.contactNumber}'}',
+                        '@${profile.username}${profile.contactNumber == null ? '' : ' · ${profile.contactNumber}'}',
                       ),
                     ],
                   ),

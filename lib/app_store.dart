@@ -8,6 +8,9 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'models.dart';
 import 'utils.dart';
 
+const _usernameAuthPrefix = 'apspicklezone+';
+const _usernameAuthDomain = 'gmail.com';
+
 class AppStore extends ChangeNotifier {
   AppStore(this.client);
 
@@ -76,9 +79,12 @@ class AppStore extends ChangeNotifier {
     super.dispose();
   }
 
-  Future<void> login({required String email, required String password}) async {
+  Future<void> login({
+    required String username,
+    required String password,
+  }) async {
     await client.auth.signInWithPassword(
-      email: email.trim(),
+      email: authEmailForUsername(username),
       password: password,
     );
     await loadAll();
@@ -86,20 +92,36 @@ class AppStore extends ChangeNotifier {
 
   Future<void> register({
     required String fullName,
-    required String email,
+    required String username,
     required String password,
     String? contactNumber,
   }) async {
+    final normalizedUsername = normalizeUsername(username);
+    final usernameAvailable = await isUsernameAvailable(normalizedUsername);
+    if (!usernameAvailable) {
+      throw Exception('Username is already taken.');
+    }
+
     await client.auth.signUp(
-      email: email.trim(),
+      email: authEmailForUsername(normalizedUsername),
       password: password,
       data: {
+        'username': normalizedUsername,
         'full_name': fullName.trim(),
         'contact_number': contactNumber?.trim(),
       },
     );
     await Future<void>.delayed(const Duration(milliseconds: 450));
     await loadAll();
+  }
+
+  Future<bool> isUsernameAvailable(String username) async {
+    final normalizedUsername = normalizeUsername(username);
+    final result = await client.rpc(
+      'is_username_available',
+      params: {'p_username': normalizedUsername},
+    );
+    return result == true;
   }
 
   Future<void> logout() async {
@@ -750,6 +772,16 @@ class AppStore extends ChangeNotifier {
 List<Map<String, dynamic>> rowsOf(Object? response) {
   final rows = response as List<dynamic>? ?? const [];
   return rows.map((row) => Map<String, dynamic>.from(row as Map)).toList();
+}
+
+String normalizeUsername(String value) {
+  return value.trim().toLowerCase();
+}
+
+String authEmailForUsername(String username) {
+  final normalized = normalizeUsername(username);
+  if (normalized.contains('@')) return normalized;
+  return '$_usernameAuthPrefix$normalized@$_usernameAuthDomain';
 }
 
 extension FirstOrNullExtension<E> on Iterable<E> {

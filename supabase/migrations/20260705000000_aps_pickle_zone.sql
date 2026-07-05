@@ -2,6 +2,7 @@ create extension if not exists pgcrypto;
 
 drop trigger if exists on_auth_user_created on auth.users;
 drop function if exists public.handle_new_user() cascade;
+drop function if exists public.is_username_available(text) cascade;
 drop function if exists public.request_registration(text, text) cascade;
 drop function if exists public.approve_registration(bigint) cascade;
 drop function if exists public.decline_registration(bigint) cascade;
@@ -41,7 +42,7 @@ on conflict (key) do update set value = excluded.value;
 create table public.profiles (
   id uuid primary key references auth.users(id) on delete cascade,
   full_name text not null,
-  email text not null,
+  username text not null unique check (username ~ '^[a-z0-9._-]{3,32}$'),
   contact_number text,
   role text not null default 'customer' check (role in ('admin', 'customer')),
   profile_image_url text,
@@ -139,6 +140,7 @@ create table public.court_maintenance (
 );
 
 create index profiles_role_idx on public.profiles(role);
+create index profiles_username_idx on public.profiles(username);
 create index courts_status_idx on public.courts(status);
 create index bookings_customer_idx on public.bookings(customer_id);
 create index bookings_court_date_idx on public.bookings(court_id, booking_date, start_time, end_time);
@@ -179,6 +181,31 @@ security definer
 set search_path = public
 as $$
   select greatest(1, coalesce((select value::integer from public.app_settings where key = 'max_rental_hours'), 4))
+$$;
+
+create or replace function public.is_username_available(p_username text)
+returns boolean
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  with normalized as (
+    select lower(trim(coalesce(p_username, ''))) as username
+  )
+  select username ~ '^[a-z0-9._-]{3,32}$'
+    and not exists (
+      select 1
+      from public.profiles
+      where profiles.username = normalized.username
+    )
+    and not exists (
+      select 1
+      from auth.users
+      where lower(coalesce(raw_user_meta_data ->> 'username', '')) = normalized.username
+        or lower(coalesce(email, '')) = 'apspicklezone+' || normalized.username || '@gmail.com'
+    )
+  from normalized
 $$;
 
 create or replace function public.touch_updated_at()
@@ -317,21 +344,42 @@ set search_path = public
 as $$
 declare
   v_full_name text := trim(coalesce(new.raw_user_meta_data ->> 'full_name', ''));
+  v_username text := lower(trim(coalesce(new.raw_user_meta_data ->> 'username', '')));
   v_contact text := trim(coalesce(new.raw_user_meta_data ->> 'contact_number', ''));
   v_first_user boolean;
 begin
   if v_full_name = '' then
-    v_full_name := split_part(new.email, '@', 1);
+    v_full_name := coalesce(
+      nullif(v_username, ''),
+      nullif(split_part(coalesce(new.email, ''), '@', 1), ''),
+      'Player'
+    );
+  end if;
+  if v_username = '' then
+    v_username := lower(split_part(coalesce(new.email, new.id::text), '@', 1));
+  end if;
+  v_username := regexp_replace(v_username, '^apspicklezone\+', '');
+  v_username := regexp_replace(v_username, '[^a-z0-9._-]', '_', 'g');
+  if length(v_username) < 3 then
+    v_username := left(v_username || '_user', 32);
+  else
+    v_username := left(v_username, 32);
+  end if;
+  if v_username !~ '^[a-z0-9._-]{3,32}$' then
+    raise exception 'Username must use 3-32 lowercase letters, numbers, dots, dashes, or underscores.';
+  end if;
+  if exists (select 1 from public.profiles where username = v_username) then
+    raise exception 'Username is already taken.';
   end if;
   v_first_user := not exists (select 1 from public.profiles);
 
   insert into public.profiles (
-    id, full_name, email, contact_number, role
+    id, full_name, username, contact_number, role
   )
   values (
     new.id,
     v_full_name,
-    coalesce(new.email, ''),
+    v_username,
     nullif(v_contact, ''),
     case when v_first_user then 'admin' else 'customer' end
   );
@@ -359,8 +407,8 @@ begin
     return new;
   end if;
 
-  if old.id <> new.id or old.email <> new.email or old.role <> new.role then
-    raise exception 'Customers cannot change profile identity, email, or role.';
+  if old.id <> new.id or old.username <> new.username or old.role <> new.role then
+    raise exception 'Customers cannot change profile identity, username, or role.';
   end if;
 
   return new;
@@ -995,6 +1043,7 @@ create or replace function public.player_of_week()
 returns table (
   customer_id uuid,
   full_name text,
+  username text,
   booking_count integer,
   total_hours integer,
   total_amount numeric
@@ -1010,6 +1059,7 @@ as $$
   select
     profiles.id as customer_id,
     profiles.full_name,
+    profiles.username,
     count(bookings.id)::integer as booking_count,
     coalesce(sum(bookings.duration_hours), 0)::integer as total_hours,
     coalesce(sum(bookings.total_amount), 0)::numeric as total_amount
@@ -1019,7 +1069,7 @@ as $$
   where bookings.status = 'completed'
     and (bookings.booking_date + bookings.start_time) >= bounds.week_start
     and (bookings.booking_date + bookings.start_time) < bounds.week_start + interval '7 days'
-  group by profiles.id, profiles.full_name
+  group by profiles.id, profiles.full_name, profiles.username
   order by total_hours desc, total_amount desc, booking_count desc, profiles.full_name
   limit 10
 $$;
@@ -1146,7 +1196,8 @@ create policy profile_images_update on storage.objects
     and (storage.foldername(name))[1] = auth.uid()::text
   );
 
-grant usage on schema public to authenticated;
+grant usage on schema public to anon, authenticated;
 grant all on all tables in schema public to authenticated;
 grant usage, select on sequence public.booking_reference_seq to authenticated;
 grant execute on all functions in schema public to authenticated;
+grant execute on function public.is_username_available(text) to anon, authenticated;

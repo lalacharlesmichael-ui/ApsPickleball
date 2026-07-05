@@ -59,7 +59,7 @@ class Profile {
   const Profile({
     required this.id,
     required this.fullName,
-    required this.email,
+    required this.username,
     required this.role,
     required this.createdAt,
     required this.updatedAt,
@@ -69,7 +69,7 @@ class Profile {
 
   final String id;
   final String fullName;
-  final String email;
+  final String username;
   final String? contactNumber;
   final AppRole role;
   final String? profileImageUrl;
@@ -82,7 +82,7 @@ class Profile {
     return Profile(
       id: row['id'].toString(),
       fullName: row['full_name']?.toString() ?? '',
-      email: row['email']?.toString() ?? '',
+      username: _usernameFromRow(row),
       contactNumber: row['contact_number']?.toString(),
       role: roleFromText(row['role']),
       profileImageUrl: row['profile_image_url']?.toString(),
@@ -102,7 +102,7 @@ class Profile {
 
   Profile copyWith({
     String? fullName,
-    String? email,
+    String? username,
     String? contactNumber,
     AppRole? role,
     String? profileImageUrl,
@@ -110,7 +110,7 @@ class Profile {
     return Profile(
       id: id,
       fullName: fullName ?? this.fullName,
-      email: email ?? this.email,
+      username: username ?? this.username,
       contactNumber: contactNumber ?? this.contactNumber,
       role: role ?? this.role,
       profileImageUrl: profileImageUrl ?? this.profileImageUrl,
@@ -118,6 +118,12 @@ class Profile {
       updatedAt: DateTime.now(),
     );
   }
+}
+
+String _usernameFromRow(Map<String, dynamic> row) {
+  final username = row['username']?.toString();
+  if (username != null && username.isNotEmpty) return username;
+  return row['id']?.toString() ?? '';
 }
 
 class Court {
@@ -426,7 +432,7 @@ class PlayerRanking {
       profile: Profile(
         id: row['customer_id'].toString(),
         fullName: row['full_name']?.toString() ?? 'Player',
-        email: '',
+        username: row['username']?.toString() ?? '',
         role: AppRole.customer,
         createdAt: now,
         updatedAt: now,

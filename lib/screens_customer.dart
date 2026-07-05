@@ -1072,11 +1072,11 @@ class _ProfilePageState extends State<ProfilePage> {
                 ),
                 const SizedBox(height: 12),
                 TextFormField(
-                  initialValue: profile?.email ?? '',
+                  initialValue: profile == null ? '' : '@${profile.username}',
                   enabled: false,
                   decoration: const InputDecoration(
-                    labelText: 'Email',
-                    prefixIcon: Icon(Icons.mail_outline_rounded),
+                    labelText: 'Username',
+                    prefixIcon: Icon(Icons.alternate_email_rounded),
                   ),
                 ),
                 const SizedBox(height: 12),

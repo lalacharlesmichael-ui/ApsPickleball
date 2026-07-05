@@ -208,7 +208,7 @@ class LoginPage extends StatefulWidget {
 
 class _LoginPageState extends State<LoginPage> {
   final _formKey = GlobalKey<FormState>();
-  final _email = TextEditingController();
+  final _username = TextEditingController();
   final _password = TextEditingController();
   bool _isSubmitting = false;
   String? _message;
@@ -216,7 +216,7 @@ class _LoginPageState extends State<LoginPage> {
 
   @override
   void dispose() {
-    _email.dispose();
+    _username.dispose();
     _password.dispose();
     super.dispose();
   }
@@ -234,15 +234,14 @@ class _LoginPageState extends State<LoginPage> {
             if (_message != null)
               MessageBanner(message: _message!, isError: _isError),
             TextFormField(
-              controller: _email,
-              keyboardType: TextInputType.emailAddress,
+              controller: _username,
+              textInputAction: TextInputAction.next,
+              autocorrect: false,
               decoration: const InputDecoration(
-                labelText: 'Email',
-                prefixIcon: Icon(Icons.mail_outline_rounded),
+                labelText: 'Username',
+                prefixIcon: Icon(Icons.alternate_email_rounded),
               ),
-              validator: (value) => value == null || !value.contains('@')
-                  ? 'Enter a valid email.'
-                  : null,
+              validator: _validateUsername,
             ),
             const SizedBox(height: 12),
             TextFormField(
@@ -288,7 +287,7 @@ class _LoginPageState extends State<LoginPage> {
     try {
       await AppScope.of(
         context,
-      ).login(email: _email.text, password: _password.text);
+      ).login(username: _username.text, password: _password.text);
     } catch (error) {
       setState(() {
         _message = _friendlyLoginError(error);
@@ -302,14 +301,28 @@ class _LoginPageState extends State<LoginPage> {
 
 String _friendlyLoginError(Object error) {
   final text = error.toString();
-  if (text.contains('invalid_credentials') ||
-      text.toLowerCase().contains('invalid login credentials')) {
-    return 'No account was found for that email and password. Create the account first, then promote it to admin in Supabase if it is not the first registered user.';
+  final lower = text.toLowerCase();
+  if (lower.contains('failed to fetch') ||
+      lower.contains('authretryablefetchexception') ||
+      lower.contains('clientexception')) {
+    return 'Could not reach Supabase Auth. Check your internet connection, Supabase project status, Project URL, and anon/publishable key, then restart the app.';
   }
-  if (text.toLowerCase().contains('email not confirmed')) {
-    return 'This email needs confirmation before login. Confirm it in Supabase Auth or disable email confirmation for local testing.';
+  if (text.contains('invalid_credentials') ||
+      lower.contains('invalid login credentials')) {
+    return 'No account was found for that username and password. Create the account first, then promote it to admin in Supabase if it is not the first registered user.';
+  }
+  if (lower.contains('email not confirmed')) {
+    return 'This username is waiting for account confirmation. Disable email confirmation in Supabase Auth for username-only login, or confirm the generated auth user in Supabase.';
   }
   return text;
+}
+
+String? _validateUsername(String? value) {
+  final username = value?.trim().toLowerCase() ?? '';
+  final valid = RegExp(r'^[a-z0-9._-]{3,32}$').hasMatch(username);
+  return valid
+      ? null
+      : 'Use 3-32 lowercase letters, numbers, dots, dashes, or underscores.';
 }
 
 class RegisterPage extends StatefulWidget {
@@ -324,7 +337,7 @@ class RegisterPage extends StatefulWidget {
 class _RegisterPageState extends State<RegisterPage> {
   final _formKey = GlobalKey<FormState>();
   final _fullName = TextEditingController();
-  final _email = TextEditingController();
+  final _username = TextEditingController();
   final _contact = TextEditingController();
   final _password = TextEditingController();
   bool _isSubmitting = false;
@@ -334,7 +347,7 @@ class _RegisterPageState extends State<RegisterPage> {
   @override
   void dispose() {
     _fullName.dispose();
-    _email.dispose();
+    _username.dispose();
     _contact.dispose();
     _password.dispose();
     super.dispose();
@@ -365,15 +378,14 @@ class _RegisterPageState extends State<RegisterPage> {
             ),
             const SizedBox(height: 12),
             TextFormField(
-              controller: _email,
-              keyboardType: TextInputType.emailAddress,
+              controller: _username,
+              textInputAction: TextInputAction.next,
+              autocorrect: false,
               decoration: const InputDecoration(
-                labelText: 'Email',
-                prefixIcon: Icon(Icons.mail_outline_rounded),
+                labelText: 'Username',
+                prefixIcon: Icon(Icons.alternate_email_rounded),
               ),
-              validator: (value) => value == null || !value.contains('@')
-                  ? 'Enter a valid email.'
-                  : null,
+              validator: _validateUsername,
             ),
             const SizedBox(height: 12),
             TextFormField(
@@ -428,7 +440,7 @@ class _RegisterPageState extends State<RegisterPage> {
     try {
       await AppScope.of(context).register(
         fullName: _fullName.text,
-        email: _email.text,
+        username: _username.text,
         contactNumber: _contact.text,
         password: _password.text,
       );
@@ -440,13 +452,32 @@ class _RegisterPageState extends State<RegisterPage> {
       });
     } catch (error) {
       setState(() {
-        _message = error.toString();
+        _message = _friendlyRegistrationError(error);
         _isError = true;
       });
     } finally {
       if (mounted) setState(() => _isSubmitting = false);
     }
   }
+}
+
+String _friendlyRegistrationError(Object error) {
+  final text = error.toString();
+  final lower = text.toLowerCase();
+  if (lower.contains('username is already taken') ||
+      lower.contains('duplicate key') ||
+      lower.contains('already registered')) {
+    return 'That username is already taken. Choose another username.';
+  }
+  if (lower.contains('database error saving new user') ||
+      lower.contains('unexpected_failure')) {
+    return 'Supabase could not create the profile. Run supabase/username_only_profiles_patch.sql in the Supabase SQL Editor, then try registering again.';
+  }
+  if (lower.contains('function public.is_username_available') ||
+      lower.contains('is_username_available')) {
+    return 'The username SQL patch has not been applied yet. Run supabase/username_only_profiles_patch.sql in Supabase, then restart the app.';
+  }
+  return text;
 }
 
 class _AuthPanel extends StatelessWidget {
