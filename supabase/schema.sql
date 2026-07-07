@@ -1133,7 +1133,7 @@ create policy maintenance_admin_delete on public.court_maintenance
 insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
 values
   ('payment-proofs', 'payment-proofs', false, 8388608, array['image/jpeg', 'image/png', 'application/pdf']),
-  ('profile-images', 'profile-images', false, 5242880, array['image/jpeg', 'image/png'])
+  ('profile-images', 'profile-images', false, 15728640, array['image/jpeg', 'image/png'])
 on conflict (id) do update set
   public = excluded.public,
   file_size_limit = excluded.file_size_limit,

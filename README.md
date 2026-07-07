@@ -31,6 +31,8 @@ The schema creates tables, validation triggers, RLS policies, storage buckets, s
 
 For an existing database, run [`supabase/username_only_profiles_patch.sql`](supabase/username_only_profiles_patch.sql) once to add/backfill usernames and remove `public.profiles.email` without dropping booking data.
 
+If profile photos larger than 5 MB fail, run [`supabase/profile_image_bucket_limit_patch.sql`](supabase/profile_image_bucket_limit_patch.sql) once to raise the `profile-images` storage bucket limit to 15 MB.
+
 If login says the account needs confirmation, use one of these setup fixes in Supabase:
 
 - Open **Authentication > Providers > Email** and turn off **Confirm email**.

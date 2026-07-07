@@ -363,16 +363,28 @@ class AppStore extends ChangeNotifier {
       );
       imagePath =
           '${currentProfile!.id}/${DateTime.now().millisecondsSinceEpoch}_$safeName';
-      await client.storage
-          .from('profile-images')
-          .uploadBinary(
-            imagePath,
-            Uint8List.fromList(bytes),
-            fileOptions: FileOptions(
-              contentType: _contentType(extension),
-              upsert: true,
-            ),
+      try {
+        await client.storage
+            .from('profile-images')
+            .uploadBinary(
+              imagePath,
+              Uint8List.fromList(bytes),
+              fileOptions: FileOptions(
+                contentType: _contentType(extension),
+                upsert: true,
+              ),
+            );
+      } catch (error) {
+        final text = error.toString().toLowerCase();
+        if (text.contains('size') ||
+            text.contains('limit') ||
+            text.contains('payload')) {
+          throw StateError(
+            'Supabase profile image storage is still capped below 15 MB. Run supabase/profile_image_bucket_limit_patch.sql in the Supabase SQL Editor, then try again.',
           );
+        }
+        rethrow;
+      }
     }
 
     await client

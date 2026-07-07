@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -1845,6 +1847,7 @@ class _ProfilePageState extends State<ProfilePage> {
   final _fullName = TextEditingController();
   final _contact = TextEditingController();
   PlatformFile? _image;
+  Uint8List? _savedImageBytes;
   Future<String?>? _profileImageUrl;
   String? _profileImagePath;
   bool _isSaving = false;
@@ -1909,6 +1912,7 @@ class _ProfilePageState extends State<ProfilePage> {
                   child: _ProfilePhotoPreview(
                     profile: profile,
                     imageFile: selectedImage,
+                    localImageBytes: _savedImageBytes,
                     imageUrl: _profileImageUrl,
                     isSaving: _isSaving,
                   ),
@@ -1999,6 +2003,9 @@ class _ProfilePageState extends State<ProfilePage> {
       setState(() {
         _message = 'Profile updated.';
         _isError = false;
+        _savedImageBytes = _image?.bytes == null
+            ? _savedImageBytes
+            : Uint8List.fromList(_image!.bytes!);
         _image = null;
       });
     } catch (error) {
@@ -2038,18 +2045,20 @@ class _ProfilePhotoPreview extends StatelessWidget {
   const _ProfilePhotoPreview({
     required this.profile,
     required this.imageFile,
+    required this.localImageBytes,
     required this.imageUrl,
     required this.isSaving,
   });
 
   final Profile? profile;
   final PlatformFile? imageFile;
+  final Uint8List? localImageBytes;
   final Future<String?>? imageUrl;
   final bool isSaving;
 
   @override
   Widget build(BuildContext context) {
-    final imageBytes = imageFile?.bytes;
+    final imageBytes = imageFile?.bytes ?? localImageBytes;
     return Stack(
       alignment: Alignment.center,
       children: [
@@ -2058,7 +2067,12 @@ class _ProfilePhotoPreview extends StatelessWidget {
           switchInCurve: Curves.easeOut,
           switchOutCurve: Curves.easeIn,
           child: Container(
-            key: ValueKey(imageFile?.name ?? profile?.profileImageUrl ?? ''),
+            key: ValueKey(
+              imageFile?.name ??
+                  localImageBytes?.hashCode ??
+                  profile?.profileImageUrl ??
+                  '',
+            ),
             width: 104,
             height: 104,
             decoration: BoxDecoration(
