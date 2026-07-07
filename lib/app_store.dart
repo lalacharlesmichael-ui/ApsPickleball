@@ -354,8 +354,8 @@ class AppStore extends ChangeNotifier {
       if (!{'jpg', 'jpeg', 'png'}.contains(extension)) {
         throw StateError('Profile photos must be JPG or PNG.');
       }
-      if (imageFile.size > 5 * 1024 * 1024) {
-        throw StateError('Profile photos must be 5 MB or smaller.');
+      if (imageFile.size > 15 * 1024 * 1024) {
+        throw StateError('Profile photos must be 15 MB or smaller.');
       }
       final safeName = imageFile.name.replaceAll(
         RegExp(r'[^a-zA-Z0-9._-]'),
