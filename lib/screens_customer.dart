@@ -1845,6 +1845,8 @@ class _ProfilePageState extends State<ProfilePage> {
   final _fullName = TextEditingController();
   final _contact = TextEditingController();
   PlatformFile? _image;
+  Future<String?>? _profileImageUrl;
+  String? _profileImagePath;
   bool _isSaving = false;
   bool _initialized = false;
   String? _message;
@@ -1853,11 +1855,19 @@ class _ProfilePageState extends State<ProfilePage> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    if (_initialized) return;
-    final profile = AppScope.of(context).currentProfile;
-    _fullName.text = profile?.fullName ?? '';
-    _contact.text = profile?.contactNumber ?? '';
-    _initialized = true;
+    final store = AppScope.of(context);
+    final profile = store.currentProfile;
+    if (!_initialized) {
+      _fullName.text = profile?.fullName ?? '';
+      _contact.text = profile?.contactNumber ?? '';
+      _initialized = true;
+    }
+    if (profile?.profileImageUrl != _profileImagePath) {
+      _profileImagePath = profile?.profileImageUrl;
+      _profileImageUrl = profile == null
+          ? Future<String?>.value()
+          : store.signedProfileImageUrl(profile);
+    }
   }
 
   @override
@@ -1871,6 +1881,7 @@ class _ProfilePageState extends State<ProfilePage> {
   Widget build(BuildContext context) {
     final store = AppScope.of(context);
     final profile = store.currentProfile;
+    final selectedImage = _image;
     return ListView(
       padding: const EdgeInsets.all(20),
       children: [
@@ -1884,21 +1895,47 @@ class _ProfilePageState extends State<ProfilePage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                if (_message != null)
-                  MessageBanner(message: _message!, isError: _isError),
-                CircleAvatar(
-                  radius: 38,
-                  backgroundColor: AppColors.green100,
-                  child: Text(
-                    initials(profile?.fullName ?? 'APZ'),
-                    style: Theme.of(
-                      context,
-                    ).textTheme.titleLarge?.copyWith(color: AppColors.green800),
+                AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 220),
+                  child: _message == null
+                      ? const SizedBox.shrink()
+                      : MessageBanner(
+                          key: ValueKey(_message),
+                          message: _message!,
+                          isError: _isError,
+                        ),
+                ),
+                Center(
+                  child: _ProfilePhotoPreview(
+                    profile: profile,
+                    imageFile: selectedImage,
+                    imageUrl: _profileImageUrl,
+                    isSaving: _isSaving,
                   ),
                 ),
+                const SizedBox(height: 12),
+                Center(
+                  child: TextButton.icon(
+                    onPressed: _isSaving ? null : _pickProfilePhoto,
+                    icon: const Icon(Icons.image_outlined),
+                    label: Text(
+                      selectedImage == null
+                          ? 'Change Profile Photo'
+                          : 'Selected ${selectedImage.name}',
+                    ),
+                  ),
+                ),
+                if (selectedImage != null)
+                  Center(
+                    child: Text(
+                      _fileSizeLabel(selectedImage.size),
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
+                  ),
                 const SizedBox(height: 14),
                 TextFormField(
                   controller: _fullName,
+                  enabled: !_isSaving,
                   decoration: const InputDecoration(
                     labelText: 'Full name',
                     prefixIcon: Icon(Icons.person_outline_rounded),
@@ -1919,27 +1956,11 @@ class _ProfilePageState extends State<ProfilePage> {
                 const SizedBox(height: 12),
                 TextFormField(
                   controller: _contact,
+                  enabled: !_isSaving,
                   keyboardType: TextInputType.phone,
                   decoration: const InputDecoration(
                     labelText: 'Contact number',
                     prefixIcon: Icon(Icons.phone_outlined),
-                  ),
-                ),
-                const SizedBox(height: 12),
-                OutlinedButton.icon(
-                  onPressed: () async {
-                    final result = await FilePicker.platform.pickFiles(
-                      type: FileType.custom,
-                      allowedExtensions: const ['jpg', 'jpeg', 'png'],
-                      withData: true,
-                    );
-                    if (result != null && result.files.isNotEmpty) {
-                      setState(() => _image = result.files.single);
-                    }
-                  },
-                  icon: const Icon(Icons.image_outlined),
-                  label: Text(
-                    _image == null ? 'Choose Profile Photo' : _image!.name,
                   ),
                 ),
                 const SizedBox(height: 16),
@@ -1952,7 +1973,7 @@ class _ProfilePageState extends State<ProfilePage> {
                           child: CircularProgressIndicator(strokeWidth: 2),
                         )
                       : const Icon(Icons.save_rounded),
-                  label: const Text('Save Profile'),
+                  label: Text(_isSaving ? 'Saving...' : 'Save Profile'),
                 ),
               ],
             ),
@@ -1974,12 +1995,14 @@ class _ProfilePageState extends State<ProfilePage> {
         contactNumber: _contact.text,
         imageFile: _image,
       );
+      if (!mounted) return;
       setState(() {
         _message = 'Profile updated.';
         _isError = false;
         _image = null;
       });
     } catch (error) {
+      if (!mounted) return;
       setState(() {
         _message = error.toString();
         _isError = true;
@@ -1988,6 +2011,161 @@ class _ProfilePageState extends State<ProfilePage> {
       if (mounted) setState(() => _isSaving = false);
     }
   }
+
+  Future<void> _pickProfilePhoto() async {
+    final result = await FilePicker.platform.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: const ['jpg', 'jpeg', 'png'],
+      withData: true,
+    );
+    if (result == null || result.files.isEmpty) return;
+    final file = result.files.single;
+    if (file.size > 15 * 1024 * 1024) {
+      setState(() {
+        _message = 'Profile photos must be 15 MB or smaller.';
+        _isError = true;
+      });
+      return;
+    }
+    setState(() {
+      _image = file;
+      _message = null;
+    });
+  }
+}
+
+class _ProfilePhotoPreview extends StatelessWidget {
+  const _ProfilePhotoPreview({
+    required this.profile,
+    required this.imageFile,
+    required this.imageUrl,
+    required this.isSaving,
+  });
+
+  final Profile? profile;
+  final PlatformFile? imageFile;
+  final Future<String?>? imageUrl;
+  final bool isSaving;
+
+  @override
+  Widget build(BuildContext context) {
+    final imageBytes = imageFile?.bytes;
+    return Stack(
+      alignment: Alignment.center,
+      children: [
+        AnimatedSwitcher(
+          duration: const Duration(milliseconds: 260),
+          switchInCurve: Curves.easeOut,
+          switchOutCurve: Curves.easeIn,
+          child: Container(
+            key: ValueKey(imageFile?.name ?? profile?.profileImageUrl ?? ''),
+            width: 104,
+            height: 104,
+            decoration: BoxDecoration(
+              color: AppTheme.iconTileBackground(context),
+              shape: BoxShape.circle,
+              border: Border.all(
+                color: Theme.of(context).colorScheme.primary.withAlpha(120),
+                width: 2,
+              ),
+            ),
+            clipBehavior: Clip.antiAlias,
+            child: imageBytes != null
+                ? Image.memory(imageBytes, fit: BoxFit.cover)
+                : _RemoteProfilePhoto(
+                    imageUrl: imageUrl,
+                    initialsText: initials(profile?.fullName ?? 'APZ'),
+                  ),
+          ),
+        ),
+        AnimatedOpacity(
+          opacity: isSaving ? 1 : 0,
+          duration: const Duration(milliseconds: 180),
+          child: Container(
+            width: 104,
+            height: 104,
+            decoration: BoxDecoration(
+              color: Colors.black.withAlpha(112),
+              shape: BoxShape.circle,
+            ),
+            child: const Center(
+              child: SizedBox(
+                width: 26,
+                height: 26,
+                child: CircularProgressIndicator(strokeWidth: 3),
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _RemoteProfilePhoto extends StatelessWidget {
+  const _RemoteProfilePhoto({
+    required this.imageUrl,
+    required this.initialsText,
+  });
+
+  final Future<String?>? imageUrl;
+  final String initialsText;
+
+  @override
+  Widget build(BuildContext context) {
+    final fallback = _ProfileInitials(initialsText: initialsText);
+    final imageUrl = this.imageUrl;
+    if (imageUrl == null) return fallback;
+    return FutureBuilder<String?>(
+      future: imageUrl,
+      builder: (context, snapshot) {
+        final url = snapshot.data;
+        if (url == null || url.isEmpty) return fallback;
+        return Image.network(
+          url,
+          fit: BoxFit.cover,
+          errorBuilder: (_, _, _) => fallback,
+          loadingBuilder: (context, child, progress) {
+            if (progress == null) return child;
+            return Stack(
+              alignment: Alignment.center,
+              children: [
+                fallback,
+                const SizedBox(
+                  width: 22,
+                  height: 22,
+                  child: CircularProgressIndicator(strokeWidth: 2.4),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+}
+
+class _ProfileInitials extends StatelessWidget {
+  const _ProfileInitials({required this.initialsText});
+
+  final String initialsText;
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Text(
+        initialsText,
+        style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+          color: AppTheme.iconTileForeground(context),
+        ),
+      ),
+    );
+  }
+}
+
+String _fileSizeLabel(int bytes) {
+  final mb = bytes / (1024 * 1024);
+  return '${mb.toStringAsFixed(mb >= 10 ? 0 : 1)} MB selected';
 }
 
 class BookingReceiptCard extends StatelessWidget {

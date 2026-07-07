@@ -384,7 +384,24 @@ class AppStore extends ChangeNotifier {
           'updated_at': DateTime.now().toUtc().toIso8601String(),
         })
         .eq('id', currentProfile!.id);
-    await loadAll();
+
+    final updatedProfile = currentProfile?.copyWith(
+      fullName: fullName.trim(),
+      contactNumber: contactNumber?.trim(),
+      profileImageUrl: imagePath,
+    );
+    if (updatedProfile != null) {
+      currentProfile = updatedProfile;
+      final index = profiles.indexWhere(
+        (profile) => profile.id == updatedProfile.id,
+      );
+      if (index >= 0) {
+        profiles[index] = updatedProfile;
+      }
+      notifyListeners();
+    }
+
+    await loadAll(quiet: true);
   }
 
   Future<String?> signedPaymentProofUrl(Booking booking) async {
