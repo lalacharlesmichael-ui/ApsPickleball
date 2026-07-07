@@ -987,10 +987,7 @@ class _CustomerCard extends StatelessWidget {
           children: [
             Row(
               children: [
-                CircleAvatar(
-                  backgroundColor: AppColors.green100,
-                  child: Text(initials(profile.fullName)),
-                ),
+                ProfileAvatar(profile: profile, radius: 24, showBorder: true),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Column(

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'app_scope.dart';
 import 'models.dart';
 import 'theme.dart';
 import 'utils.dart';
@@ -60,6 +61,109 @@ class AppCard extends StatelessWidget {
     return Card(
       color: AppTheme.adaptiveSurfaceColor(context, color),
       child: Padding(padding: padding, child: child),
+    );
+  }
+}
+
+class ProfileAvatar extends StatefulWidget {
+  const ProfileAvatar({
+    super.key,
+    required this.profile,
+    this.radius = 22,
+    this.showBorder = false,
+  });
+
+  final Profile profile;
+  final double radius;
+  final bool showBorder;
+
+  @override
+  State<ProfileAvatar> createState() => _ProfileAvatarState();
+}
+
+class _ProfileAvatarState extends State<ProfileAvatar> {
+  Future<String?>? _signedUrl;
+  String? _imagePath;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _syncImageUrl();
+  }
+
+  @override
+  void didUpdateWidget(covariant ProfileAvatar oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.profile.profileImageUrl != widget.profile.profileImageUrl ||
+        oldWidget.profile.id != widget.profile.id) {
+      _syncImageUrl();
+    }
+  }
+
+  void _syncImageUrl() {
+    final path = widget.profile.profileImageUrl;
+    if (path == _imagePath) return;
+    _imagePath = path;
+    _signedUrl = path == null || path.isEmpty
+        ? Future<String?>.value()
+        : AppScope.of(context).signedProfileImageUrl(widget.profile);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final size = widget.radius * 2;
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        color: AppTheme.iconTileBackground(context),
+        shape: BoxShape.circle,
+        border: widget.showBorder
+            ? Border.all(
+                color: Theme.of(context).colorScheme.primary.withAlpha(120),
+                width: 2,
+              )
+            : null,
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: FutureBuilder<String?>(
+        future: _signedUrl,
+        builder: (context, snapshot) {
+          final url = snapshot.data;
+          if (url == null || url.isEmpty) return _initials(context);
+          return Image.network(
+            url,
+            fit: BoxFit.cover,
+            errorBuilder: (_, _, _) => _initials(context),
+            loadingBuilder: (context, child, progress) {
+              if (progress == null) return child;
+              return Stack(
+                alignment: Alignment.center,
+                children: [
+                  _initials(context),
+                  SizedBox(
+                    width: widget.radius * .7,
+                    height: widget.radius * .7,
+                    child: const CircularProgressIndicator(strokeWidth: 2),
+                  ),
+                ],
+              );
+            },
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _initials(BuildContext context) {
+    return Center(
+      child: Text(
+        initials(widget.profile.fullName),
+        style: Theme.of(context).textTheme.titleMedium?.copyWith(
+          color: AppTheme.iconTileForeground(context),
+          fontWeight: FontWeight.w900,
+        ),
+      ),
     );
   }
 }
