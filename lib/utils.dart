@@ -1,6 +1,7 @@
 import 'models.dart';
 
 const int defaultMaxRentalHours = 4;
+const int bookingClosingHour = 23;
 const double defaultHourlyRate = 250;
 const List<int> bookingStartHours = [
   6,
@@ -19,6 +20,7 @@ const List<int> bookingStartHours = [
   19,
   20,
   21,
+  22,
 ];
 
 DateTime get manilaNow => DateTime.now().toUtc().add(const Duration(hours: 8));

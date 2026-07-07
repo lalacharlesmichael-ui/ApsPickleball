@@ -521,7 +521,7 @@ class AppStore extends ChangeNotifier {
       return false;
     }
     final startHour = int.tryParse(startTime.split(':').first) ?? 0;
-    if (startHour + durationHours > 22) return false;
+    if (startHour + durationHours > bookingClosingHour) return false;
     final start = DateTime(date.year, date.month, date.day, startHour);
     final end = start.add(Duration(hours: durationHours));
     if (!start.isAfter(now)) return false;
@@ -585,7 +585,7 @@ class AppStore extends ChangeNotifier {
 
   List<int> allowedDurations(String startTime) {
     final startHour = int.tryParse(startTime.split(':').first) ?? 6;
-    final maxByClosing = 22 - startHour;
+    final maxByClosing = bookingClosingHour - startHour;
     final max = maxByClosing.clamp(1, defaultMaxRentalHours);
     return [for (var value = 1; value <= max; value++) value];
   }
