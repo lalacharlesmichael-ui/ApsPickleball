@@ -235,6 +235,7 @@ class _PublicShellState extends State<PublicShell> {
 
   @override
   Widget build(BuildContext context) {
+    final store = AppScope.of(context);
     final items = [
       _NavItem(
         label: 'Home',
@@ -316,29 +317,32 @@ class _PublicShellState extends State<PublicShell> {
                   ),
                 )
               : null,
-          body: Column(
-            children: [
-              if (widget.errorMessage != null)
-                MaterialBanner(
-                  content: Text(widget.errorMessage!),
-                  leading: const Icon(Icons.info_outline_rounded),
-                  actions: [
-                    TextButton(
-                      onPressed: () => AppScope.of(context).loadAll(),
-                      child: const Text('Retry'),
+          body: BackgroundSlideshow(
+            imageUrls: store.activeInterfaceBackgroundUrls,
+            child: Column(
+              children: [
+                if (widget.errorMessage != null)
+                  MaterialBanner(
+                    content: Text(widget.errorMessage!),
+                    leading: const Icon(Icons.info_outline_rounded),
+                    actions: [
+                      TextButton(
+                        onPressed: () => AppScope.of(context).loadAll(),
+                        child: const Text('Retry'),
+                      ),
+                    ],
+                  ),
+                Expanded(
+                  child: Center(
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 1180),
+                      child: items[_selected].page,
                     ),
-                  ],
-                ),
-              Expanded(
-                child: Center(
-                  child: ConstrainedBox(
-                    constraints: const BoxConstraints(maxWidth: 1180),
-                    child: items[_selected].page,
                   ),
                 ),
-              ),
-              const _MadeByFooter(),
-            ],
+                const _MadeByFooter(),
+              ],
+            ),
           ),
         );
       },
@@ -441,6 +445,7 @@ class _CustomerShellState extends State<CustomerShell> {
       onSelected: (value) => setState(() => _selected = value),
       isDarkMode: widget.isDarkMode,
       onDarkModeChanged: widget.onDarkModeChanged,
+      showUserBackdrop: true,
     );
   }
 }
@@ -503,6 +508,11 @@ class _AdminShellState extends State<AdminShell> {
         page: ReportsPage(),
       ),
       const _NavItem(
+        label: 'Backgrounds',
+        icon: Icons.wallpaper_outlined,
+        page: InterfaceBackgroundsPage(),
+      ),
+      const _NavItem(
         label: 'Maintenance',
         icon: Icons.construction_rounded,
         page: MaintenanceSchedulingPage(),
@@ -519,6 +529,7 @@ class _AdminShellState extends State<AdminShell> {
       onSelected: (value) => setState(() => _selected = value),
       isDarkMode: widget.isDarkMode,
       onDarkModeChanged: widget.onDarkModeChanged,
+      showUserBackdrop: false,
     );
   }
 }
@@ -530,6 +541,7 @@ class _AuthenticatedShell extends StatelessWidget {
     required this.onSelected,
     required this.isDarkMode,
     required this.onDarkModeChanged,
+    required this.showUserBackdrop,
   });
 
   final List<_NavItem> items;
@@ -537,6 +549,7 @@ class _AuthenticatedShell extends StatelessWidget {
   final ValueChanged<int> onSelected;
   final bool isDarkMode;
   final ValueChanged<bool> onDarkModeChanged;
+  final bool showUserBackdrop;
 
   @override
   Widget build(BuildContext context) {
@@ -544,6 +557,33 @@ class _AuthenticatedShell extends StatelessWidget {
     return LayoutBuilder(
       builder: (context, constraints) {
         final compact = constraints.maxWidth < 820;
+        final content = Row(
+          children: [
+            if (!compact)
+              NavigationRail(
+                selectedIndex: selected,
+                onDestinationSelected: onSelected,
+                labelType: NavigationRailLabelType.all,
+                minWidth: 92,
+                destinations: [
+                  for (final item in items)
+                    NavigationRailDestination(
+                      icon: Icon(item.icon),
+                      selectedIcon: Icon(item.icon),
+                      label: Text(item.label),
+                    ),
+                ],
+              ),
+            Expanded(
+              child: Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 1200),
+                  child: items[selected].page,
+                ),
+              ),
+            ),
+          ],
+        );
         return Scaffold(
           appBar: AppBar(
             title: const BrandMark(),
@@ -600,33 +640,12 @@ class _AuthenticatedShell extends StatelessWidget {
                   onSelected: onSelected,
                 )
               : null,
-          body: Row(
-            children: [
-              if (!compact)
-                NavigationRail(
-                  selectedIndex: selected,
-                  onDestinationSelected: onSelected,
-                  labelType: NavigationRailLabelType.all,
-                  minWidth: 92,
-                  destinations: [
-                    for (final item in items)
-                      NavigationRailDestination(
-                        icon: Icon(item.icon),
-                        selectedIcon: Icon(item.icon),
-                        label: Text(item.label),
-                      ),
-                  ],
-                ),
-              Expanded(
-                child: Center(
-                  child: ConstrainedBox(
-                    constraints: const BoxConstraints(maxWidth: 1200),
-                    child: items[selected].page,
-                  ),
-                ),
-              ),
-            ],
-          ),
+          body: showUserBackdrop
+              ? BackgroundSlideshow(
+                  imageUrls: store.activeInterfaceBackgroundUrls,
+                  child: content,
+                )
+              : content,
         );
       },
     );

@@ -384,6 +384,41 @@ class CourtMaintenance {
   }
 }
 
+class InterfaceBackground {
+  const InterfaceBackground({
+    required this.id,
+    required this.title,
+    required this.storagePath,
+    required this.isActive,
+    required this.displayOrder,
+    required this.createdAt,
+    required this.updatedAt,
+    this.createdBy,
+  });
+
+  final String id;
+  final String title;
+  final String storagePath;
+  final bool isActive;
+  final int displayOrder;
+  final String? createdBy;
+  final DateTime createdAt;
+  final DateTime updatedAt;
+
+  factory InterfaceBackground.fromMap(Map<String, dynamic> row) {
+    return InterfaceBackground(
+      id: row['id'].toString(),
+      title: row['title']?.toString() ?? 'Background',
+      storagePath: row['storage_path']?.toString() ?? '',
+      isActive: row['is_active'] != false,
+      displayOrder: intFrom(row['display_order']),
+      createdBy: row['created_by']?.toString(),
+      createdAt: parseDateTime(row['created_at']),
+      updatedAt: parseDateTime(row['updated_at']),
+    );
+  }
+}
+
 class AdminActivityLog {
   const AdminActivityLog({
     required this.id,

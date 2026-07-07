@@ -20,6 +20,7 @@ drop table if exists public.exam_types cascade;
 drop table if exists public.registration_requests cascade;
 drop table if exists public.admin_activity_logs cascade;
 drop table if exists public.court_maintenance cascade;
+drop table if exists public.interface_backgrounds cascade;
 drop table if exists public.notifications cascade;
 drop table if exists public.bookings cascade;
 drop table if exists public.courts cascade;
@@ -139,6 +140,17 @@ create table public.court_maintenance (
   constraint maintenance_time_order check (end_datetime > start_datetime)
 );
 
+create table public.interface_backgrounds (
+  id uuid primary key default gen_random_uuid(),
+  title text not null,
+  storage_path text not null unique,
+  is_active boolean not null default true,
+  display_order integer not null default 0,
+  created_by uuid references public.profiles(id) on delete set null,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
 create index profiles_role_idx on public.profiles(role);
 create index profiles_username_idx on public.profiles(username);
 create index courts_status_idx on public.courts(status);
@@ -149,6 +161,7 @@ create index bookings_payment_status_idx on public.bookings(payment_status);
 create index bookings_created_at_idx on public.bookings(created_at desc);
 create index notifications_user_read_idx on public.notifications(user_id, is_read, created_at desc);
 create index maintenance_court_time_idx on public.court_maintenance(court_id, start_datetime, end_datetime);
+create index interface_backgrounds_active_idx on public.interface_backgrounds(is_active, display_order, created_at desc);
 create index activity_logs_created_idx on public.admin_activity_logs(created_at desc);
 
 create or replace function public.current_profile_id()
@@ -228,6 +241,10 @@ create trigger courts_touch_updated_at
 
 create trigger bookings_touch_updated_at
   before update on public.bookings
+  for each row execute function public.touch_updated_at();
+
+create trigger interface_backgrounds_touch_updated_at
+  before update on public.interface_backgrounds
   for each row execute function public.touch_updated_at();
 
 create or replace function public.next_booking_reference()
@@ -1081,6 +1098,7 @@ alter table public.bookings enable row level security;
 alter table public.notifications enable row level security;
 alter table public.admin_activity_logs enable row level security;
 alter table public.court_maintenance enable row level security;
+alter table public.interface_backgrounds enable row level security;
 
 create policy app_settings_admin_select on public.app_settings
   for select to authenticated using (public.is_admin());
@@ -1130,10 +1148,20 @@ create policy maintenance_admin_update on public.court_maintenance
 create policy maintenance_admin_delete on public.court_maintenance
   for delete to authenticated using (public.is_admin());
 
+create policy interface_backgrounds_select_public_active on public.interface_backgrounds
+  for select to anon, authenticated using (is_active or public.is_admin());
+create policy interface_backgrounds_admin_insert on public.interface_backgrounds
+  for insert to authenticated with check (public.is_admin());
+create policy interface_backgrounds_admin_update on public.interface_backgrounds
+  for update to authenticated using (public.is_admin()) with check (public.is_admin());
+create policy interface_backgrounds_admin_delete on public.interface_backgrounds
+  for delete to authenticated using (public.is_admin());
+
 insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
 values
   ('payment-proofs', 'payment-proofs', false, 8388608, array['image/jpeg', 'image/png', 'application/pdf']),
-  ('profile-images', 'profile-images', false, 15728640, array['image/jpeg', 'image/png'])
+  ('profile-images', 'profile-images', false, 15728640, array['image/jpeg', 'image/png']),
+  ('interface-backgrounds', 'interface-backgrounds', true, 15728640, array['image/jpeg', 'image/png'])
 on conflict (id) do update set
   public = excluded.public,
   file_size_limit = excluded.file_size_limit,
@@ -1145,6 +1173,10 @@ drop policy if exists payment_proofs_update on storage.objects;
 drop policy if exists profile_images_select on storage.objects;
 drop policy if exists profile_images_insert on storage.objects;
 drop policy if exists profile_images_update on storage.objects;
+drop policy if exists interface_backgrounds_select on storage.objects;
+drop policy if exists interface_backgrounds_insert on storage.objects;
+drop policy if exists interface_backgrounds_update on storage.objects;
+drop policy if exists interface_backgrounds_delete on storage.objects;
 
 create policy payment_proofs_select on storage.objects
   for select to authenticated
@@ -1196,8 +1228,26 @@ create policy profile_images_update on storage.objects
     and (storage.foldername(name))[1] = auth.uid()::text
   );
 
+create policy interface_backgrounds_select on storage.objects
+  for select to anon, authenticated
+  using (bucket_id = 'interface-backgrounds');
+
+create policy interface_backgrounds_insert on storage.objects
+  for insert to authenticated
+  with check (bucket_id = 'interface-backgrounds' and public.is_admin());
+
+create policy interface_backgrounds_update on storage.objects
+  for update to authenticated
+  using (bucket_id = 'interface-backgrounds' and public.is_admin())
+  with check (bucket_id = 'interface-backgrounds' and public.is_admin());
+
+create policy interface_backgrounds_delete on storage.objects
+  for delete to authenticated
+  using (bucket_id = 'interface-backgrounds' and public.is_admin());
+
 grant usage on schema public to anon, authenticated;
 grant all on all tables in schema public to authenticated;
+grant select on public.interface_backgrounds to anon;
 grant usage, select on sequence public.booking_reference_seq to authenticated;
 grant execute on all functions in schema public to authenticated;
 grant execute on function public.is_username_available(text) to anon, authenticated;

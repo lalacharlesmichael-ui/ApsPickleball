@@ -24,6 +24,7 @@ class AppStore extends ChangeNotifier {
   final List<CourtMaintenance> maintenance = [];
   final List<AdminActivityLog> activityLogs = [];
   final List<PlayerRanking> weeklyRankings = [];
+  final List<InterfaceBackground> interfaceBackgrounds = [];
 
   bool isLoading = true;
   String? errorMessage;
@@ -35,6 +36,7 @@ class AppStore extends ChangeNotifier {
   Timer? _clock;
   Timer? _refreshTimer;
   Timer? _realtimeRefreshDebounce;
+  Timer? _backgroundRefreshDebounce;
 
   bool get isAuthenticated => client.auth.currentUser != null;
   bool get isAdmin => currentProfile?.isAdmin ?? false;
@@ -45,6 +47,17 @@ class AppStore extends ChangeNotifier {
       .toList();
   int get unreadNotificationCount =>
       notifications.where((notification) => !notification.isRead).length;
+  List<InterfaceBackground> get activeInterfaceBackgrounds =>
+      interfaceBackgrounds
+          .where(
+            (background) =>
+                background.isActive && background.storagePath.isNotEmpty,
+          )
+          .toList();
+  List<String> get activeInterfaceBackgroundUrls => activeInterfaceBackgrounds
+      .map((background) => publicInterfaceBackgroundUrl(background.storagePath))
+      .where((url) => url.isNotEmpty)
+      .toList();
 
   Future<void> initialize() async {
     _clock = Timer.periodic(const Duration(minutes: 1), (_) {
@@ -73,6 +86,7 @@ class AppStore extends ChangeNotifier {
     _clock?.cancel();
     _refreshTimer?.cancel();
     _realtimeRefreshDebounce?.cancel();
+    _backgroundRefreshDebounce?.cancel();
     _authSubscription?.cancel();
     final channel = _realtimeChannel;
     if (channel != null) {
@@ -133,6 +147,7 @@ class AppStore extends ChangeNotifier {
 
   Future<void> loadAll({bool quiet = false}) async {
     final authUser = client.auth.currentUser;
+    await _loadInterfaceBackgrounds();
     if (authUser == null) {
       _clearSession();
       return;
@@ -430,6 +445,100 @@ class AppStore extends ChangeNotifier {
     if (path == null || path.isEmpty) return null;
     if (path.startsWith('http')) return path;
     return client.storage.from('profile-images').createSignedUrl(path, 600);
+  }
+
+  String publicInterfaceBackgroundUrl(String path) {
+    if (path.isEmpty) return '';
+    if (path.startsWith('http')) return path;
+    return client.storage.from('interface-backgrounds').getPublicUrl(path);
+  }
+
+  Future<void> uploadInterfaceBackground({
+    required String title,
+    required PlatformFile file,
+  }) async {
+    if (!isAdmin || currentProfile == null) {
+      throw StateError('Only admins can upload interface backgrounds.');
+    }
+    final bytes = file.bytes;
+    final extension = (file.extension ?? '').toLowerCase();
+    if (bytes == null || bytes.isEmpty) {
+      throw StateError('Choose a JPG or PNG image before uploading.');
+    }
+    if (!{'jpg', 'jpeg', 'png'}.contains(extension)) {
+      throw StateError('Interface backgrounds must be JPG or PNG images.');
+    }
+    if (file.size > 15 * 1024 * 1024) {
+      throw StateError('Interface backgrounds must be 15 MB or smaller.');
+    }
+
+    final safeName = file.name.replaceAll(RegExp(r'[^a-zA-Z0-9._-]'), '_');
+    final path =
+        '${currentProfile!.id}/${DateTime.now().millisecondsSinceEpoch}_$safeName';
+    await client.storage
+        .from('interface-backgrounds')
+        .uploadBinary(
+          path,
+          Uint8List.fromList(bytes),
+          fileOptions: FileOptions(
+            contentType: _contentType(extension),
+            upsert: true,
+          ),
+        );
+
+    final nextOrder =
+        interfaceBackgrounds.fold<int>(
+          0,
+          (max, background) =>
+              background.displayOrder > max ? background.displayOrder : max,
+        ) +
+        1;
+    await client.from('interface_backgrounds').insert({
+      'title': title.trim().isEmpty ? 'Interface Background' : title.trim(),
+      'storage_path': path,
+      'is_active': true,
+      'display_order': nextOrder,
+      'created_by': currentProfile!.id,
+    });
+    await _loadInterfaceBackgrounds();
+    notifyListeners();
+  }
+
+  Future<void> setInterfaceBackgroundActive({
+    required InterfaceBackground background,
+    required bool isActive,
+  }) async {
+    if (!isAdmin) {
+      throw StateError('Only admins can update interface backgrounds.');
+    }
+    await client
+        .from('interface_backgrounds')
+        .update({
+          'is_active': isActive,
+          'updated_at': DateTime.now().toUtc().toIso8601String(),
+        })
+        .eq('id', background.id);
+    await _loadInterfaceBackgrounds();
+    notifyListeners();
+  }
+
+  Future<void> deleteInterfaceBackground(InterfaceBackground background) async {
+    if (!isAdmin) {
+      throw StateError('Only admins can delete interface backgrounds.');
+    }
+    await client.from('interface_backgrounds').delete().eq('id', background.id);
+    if (background.storagePath.isNotEmpty &&
+        !background.storagePath.startsWith('http')) {
+      try {
+        await client.storage.from('interface-backgrounds').remove([
+          background.storagePath,
+        ]);
+      } catch (_) {
+        // Keep the admin flow moving if the database row was already removed.
+      }
+    }
+    await _loadInterfaceBackgrounds();
+    notifyListeners();
   }
 
   Future<void> markNotificationRead(AppNotification notification) async {
@@ -882,6 +991,12 @@ class AppStore extends ChangeNotifier {
           table: 'admin_activity_logs',
           callback: (_) => _scheduleRealtimeRefresh(),
         )
+        .onPostgresChanges(
+          event: PostgresChangeEvent.all,
+          schema: 'public',
+          table: 'interface_backgrounds',
+          callback: (_) => _scheduleInterfaceBackgroundRefresh(),
+        )
         .subscribe();
   }
 
@@ -891,6 +1006,18 @@ class AppStore extends ChangeNotifier {
     _realtimeRefreshDebounce = Timer(const Duration(milliseconds: 450), () {
       unawaited(loadAll(quiet: true));
     });
+  }
+
+  void _scheduleInterfaceBackgroundRefresh() {
+    _backgroundRefreshDebounce?.cancel();
+    _backgroundRefreshDebounce = Timer(const Duration(milliseconds: 450), () {
+      unawaited(_refreshInterfaceBackgrounds());
+    });
+  }
+
+  Future<void> _refreshInterfaceBackgrounds() async {
+    await _loadInterfaceBackgrounds();
+    notifyListeners();
   }
 
   void _clearSession() {
@@ -932,6 +1059,27 @@ class AppStore extends ChangeNotifier {
     } catch (_) {
       weeklyRankings.clear();
       _weeklyRankingsLoaded = false;
+    }
+  }
+
+  Future<void> _loadInterfaceBackgrounds() async {
+    try {
+      final backgroundRows = rowsOf(
+        await client
+            .from('interface_backgrounds')
+            .select()
+            .order('display_order')
+            .order('created_at', ascending: false),
+      );
+      interfaceBackgrounds
+        ..clear()
+        ..addAll(
+          backgroundRows
+              .map(InterfaceBackground.fromMap)
+              .where((background) => background.storagePath.isNotEmpty),
+        );
+    } catch (_) {
+      interfaceBackgrounds.clear();
     }
   }
 }

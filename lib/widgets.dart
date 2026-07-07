@@ -67,6 +67,140 @@ class AppCard extends StatelessWidget {
   }
 }
 
+class BackgroundSlideshow extends StatefulWidget {
+  const BackgroundSlideshow({
+    super.key,
+    required this.imageUrls,
+    required this.child,
+    this.slideDuration = const Duration(seconds: 7),
+    this.fadeDuration = const Duration(milliseconds: 850),
+  });
+
+  final List<String> imageUrls;
+  final Widget child;
+  final Duration slideDuration;
+  final Duration fadeDuration;
+
+  @override
+  State<BackgroundSlideshow> createState() => _BackgroundSlideshowState();
+}
+
+class _BackgroundSlideshowState extends State<BackgroundSlideshow> {
+  Timer? _timer;
+  int _index = 0;
+
+  List<String> get _urls {
+    final seen = <String>{};
+    return [
+      for (final rawUrl in widget.imageUrls)
+        if (rawUrl.trim().isNotEmpty && seen.add(rawUrl.trim())) rawUrl.trim(),
+    ];
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _syncTimer();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _precacheVisibleImages();
+  }
+
+  @override
+  void didUpdateWidget(covariant BackgroundSlideshow oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (!_sameUrls(oldWidget.imageUrls, widget.imageUrls)) {
+      _index = 0;
+      _syncTimer();
+      _precacheVisibleImages();
+    }
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  void _syncTimer() {
+    _timer?.cancel();
+    if (_urls.length < 2) return;
+    _timer = Timer.periodic(widget.slideDuration, (_) {
+      final urls = _urls;
+      if (!mounted || urls.length < 2) return;
+      setState(() => _index = (_index + 1) % urls.length);
+      _precacheVisibleImages();
+    });
+  }
+
+  void _precacheVisibleImages() {
+    final urls = _urls;
+    if (urls.isEmpty) return;
+    final safeIndex = _index.clamp(0, urls.length - 1).toInt();
+    unawaited(precacheImage(NetworkImage(urls[safeIndex]), context));
+    if (urls.length > 1) {
+      unawaited(
+        precacheImage(
+          NetworkImage(urls[(safeIndex + 1) % urls.length]),
+          context,
+        ),
+      );
+    }
+  }
+
+  bool _sameUrls(List<String> previous, List<String> next) {
+    final left = previous
+        .map((url) => url.trim())
+        .where((url) => url.isNotEmpty);
+    final right = next.map((url) => url.trim()).where((url) => url.isNotEmpty);
+    final leftList = left.toList();
+    final rightList = right.toList();
+    if (leftList.length != rightList.length) return false;
+    for (var i = 0; i < leftList.length; i++) {
+      if (leftList[i] != rightList[i]) return false;
+    }
+    return true;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final urls = _urls;
+    if (urls.isEmpty) return widget.child;
+    final safeIndex = _index.clamp(0, urls.length - 1).toInt();
+    final url = urls[safeIndex];
+    final overlayAlpha = AppTheme.isDark(context) ? 152 : 104;
+
+    return ClipRect(
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          AnimatedSwitcher(
+            duration: widget.fadeDuration,
+            switchInCurve: Curves.easeOut,
+            switchOutCurve: Curves.easeIn,
+            child: Image.network(
+              url,
+              key: ValueKey(url),
+              fit: BoxFit.cover,
+              width: double.infinity,
+              height: double.infinity,
+              gaplessPlayback: true,
+              errorBuilder: (_, _, _) => const SizedBox.expand(),
+            ),
+          ),
+          Positioned.fill(
+            child: ColoredBox(color: Colors.black.withAlpha(overlayAlpha)),
+          ),
+          Positioned.fill(child: widget.child),
+        ],
+      ),
+    );
+  }
+}
+
 class ProfileAvatar extends StatefulWidget {
   const ProfileAvatar({
     super.key,

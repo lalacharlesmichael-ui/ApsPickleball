@@ -1,3 +1,4 @@
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 
 import 'app_scope.dart';
@@ -913,6 +914,371 @@ class _MaintenanceSchedulingPageState extends State<MaintenanceSchedulingPage> {
   }
 }
 
+class InterfaceBackgroundsPage extends StatefulWidget {
+  const InterfaceBackgroundsPage({super.key});
+
+  @override
+  State<InterfaceBackgroundsPage> createState() =>
+      _InterfaceBackgroundsPageState();
+}
+
+class _InterfaceBackgroundsPageState extends State<InterfaceBackgroundsPage> {
+  final _title = TextEditingController();
+  PlatformFile? _image;
+  bool _saving = false;
+  String? _workingBackgroundId;
+  String? _message;
+  bool _isError = false;
+
+  @override
+  void dispose() {
+    _title.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final store = AppScope.of(context);
+    final image = _image;
+    return ListView(
+      padding: const EdgeInsets.all(20),
+      children: [
+        const PageHeader(
+          title: 'Screen Backgrounds',
+          subtitle:
+              'Manage the slideshow shown behind public and customer screens.',
+        ),
+        AppCard(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              if (_message != null)
+                MessageBanner(message: _message!, isError: _isError),
+              TextField(
+                controller: _title,
+                enabled: !_saving,
+                decoration: const InputDecoration(
+                  labelText: 'Background title',
+                  prefixIcon: Icon(Icons.title_rounded),
+                ),
+              ),
+              const SizedBox(height: 12),
+              if (image?.bytes != null) ...[
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: AspectRatio(
+                    aspectRatio: 16 / 9,
+                    child: Image.memory(image!.bytes!, fit: BoxFit.cover),
+                  ),
+                ),
+                const SizedBox(height: 10),
+              ],
+              Wrap(
+                spacing: 10,
+                runSpacing: 10,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                children: [
+                  OutlinedButton.icon(
+                    onPressed: _saving ? null : _pickImage,
+                    icon: const Icon(Icons.image_outlined),
+                    label: Text(
+                      image == null ? 'Choose Image' : 'Change Image',
+                    ),
+                  ),
+                  if (image != null)
+                    ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 320),
+                      child: Text(
+                        '${image.name} - ${_adminFileSizeLabel(image.size)}',
+                        overflow: TextOverflow.ellipsis,
+                        style: Theme.of(context).textTheme.bodySmall,
+                      ),
+                    ),
+                  FilledButton.icon(
+                    onPressed: image == null || _saving
+                        ? null
+                        : () => _upload(store),
+                    icon: _saving
+                        ? const SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Icon(Icons.cloud_upload_rounded),
+                    label: Text(_saving ? 'Uploading...' : 'Upload'),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 12),
+        if (store.interfaceBackgrounds.isEmpty)
+          const EmptyState(
+            icon: Icons.wallpaper_outlined,
+            title: 'No slideshow images yet',
+            message:
+                'Upload JPG or PNG images to show them on user-facing screens.',
+          )
+        else
+          ...store.interfaceBackgrounds.map(
+            (background) => Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: _InterfaceBackgroundCard(
+                background: background,
+                publicUrl: store.publicInterfaceBackgroundUrl(
+                  background.storagePath,
+                ),
+                isWorking: _workingBackgroundId == background.id,
+                onActiveChanged: (value) =>
+                    _setActive(store, background, value),
+                onDelete: () => _deleteBackground(store, background),
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+
+  Future<void> _pickImage() async {
+    final result = await FilePicker.platform.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: const ['jpg', 'jpeg', 'png'],
+      withData: true,
+    );
+    if (result == null || result.files.isEmpty) return;
+    final file = result.files.single;
+    if (file.size > 15 * 1024 * 1024) {
+      setState(() {
+        _message = 'Interface backgrounds must be 15 MB or smaller.';
+        _isError = true;
+      });
+      return;
+    }
+    setState(() {
+      _image = file;
+      _message = null;
+    });
+  }
+
+  Future<void> _upload(AppStore store) async {
+    final image = _image;
+    if (image == null) return;
+    setState(() {
+      _saving = true;
+      _message = null;
+    });
+    try {
+      await store.uploadInterfaceBackground(title: _title.text, file: image);
+      if (!mounted) return;
+      setState(() {
+        _title.clear();
+        _image = null;
+        _message = 'Background uploaded and added to the slideshow.';
+        _isError = false;
+      });
+    } catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _message = error.toString();
+        _isError = true;
+      });
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
+  }
+
+  Future<void> _setActive(
+    AppStore store,
+    InterfaceBackground background,
+    bool isActive,
+  ) async {
+    setState(() {
+      _workingBackgroundId = background.id;
+      _message = null;
+    });
+    try {
+      await store.setInterfaceBackgroundActive(
+        background: background,
+        isActive: isActive,
+      );
+      if (!mounted) return;
+      setState(() {
+        _message = isActive
+            ? 'Background is now visible to users.'
+            : 'Background was hidden from users.';
+        _isError = false;
+      });
+    } catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _message = error.toString();
+        _isError = true;
+      });
+    } finally {
+      if (mounted) setState(() => _workingBackgroundId = null);
+    }
+  }
+
+  Future<void> _deleteBackground(
+    AppStore store,
+    InterfaceBackground background,
+  ) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Remove ${background.title}?'),
+        content: const Text(
+          'This removes the image from the user screen slideshow.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Close'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Remove'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+
+    setState(() {
+      _workingBackgroundId = background.id;
+      _message = null;
+    });
+    try {
+      await store.deleteInterfaceBackground(background);
+      if (!mounted) return;
+      setState(() {
+        _message = 'Background removed.';
+        _isError = false;
+      });
+    } catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _message = error.toString();
+        _isError = true;
+      });
+    } finally {
+      if (mounted) setState(() => _workingBackgroundId = null);
+    }
+  }
+}
+
+class _InterfaceBackgroundCard extends StatelessWidget {
+  const _InterfaceBackgroundCard({
+    required this.background,
+    required this.publicUrl,
+    required this.isWorking,
+    required this.onActiveChanged,
+    required this.onDelete,
+  });
+
+  final InterfaceBackground background;
+  final String publicUrl;
+  final bool isWorking;
+  final ValueChanged<bool> onActiveChanged;
+  final VoidCallback onDelete;
+
+  @override
+  Widget build(BuildContext context) {
+    return AppCard(
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final compact = constraints.maxWidth < 620;
+          final preview = ClipRRect(
+            borderRadius: BorderRadius.circular(8),
+            child: SizedBox(
+              width: compact ? double.infinity : 168,
+              height: compact ? null : 96,
+              child: AspectRatio(
+                aspectRatio: 16 / 9,
+                child: publicUrl.isEmpty
+                    ? const ColoredBox(color: AppColors.gray)
+                    : Image.network(
+                        publicUrl,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, _, _) =>
+                            const ColoredBox(color: AppColors.gray),
+                      ),
+              ),
+            ),
+          );
+          final details = Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                background.title,
+                style: Theme.of(context).textTheme.titleLarge,
+              ),
+              const SizedBox(height: 6),
+              Wrap(
+                spacing: 8,
+                runSpacing: 6,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                children: [
+                  StatusBadge(
+                    label: background.isActive ? 'Visible' : 'Hidden',
+                    color: background.isActive
+                        ? AppColors.green600
+                        : AppColors.gray,
+                  ),
+                  Text('Order ${background.displayOrder}'),
+                ],
+              ),
+            ],
+          );
+          final actions = Wrap(
+            spacing: 8,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: [
+              Switch(
+                value: background.isActive,
+                onChanged: isWorking ? null : onActiveChanged,
+              ),
+              IconButton(
+                tooltip: 'Remove',
+                onPressed: isWorking ? null : onDelete,
+                icon: isWorking
+                    ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.delete_outline_rounded),
+              ),
+            ],
+          );
+
+          if (compact) {
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                preview,
+                const SizedBox(height: 12),
+                details,
+                const SizedBox(height: 10),
+                actions,
+              ],
+            );
+          }
+          return Row(
+            children: [
+              preview,
+              const SizedBox(width: 14),
+              Expanded(child: details),
+              actions,
+            ],
+          );
+        },
+      ),
+    );
+  }
+}
+
 class ActivityLogsPage extends StatelessWidget {
   const ActivityLogsPage({super.key});
 
@@ -1164,6 +1530,11 @@ class _AdminSectionTitle extends StatelessWidget {
       ],
     );
   }
+}
+
+String _adminFileSizeLabel(int bytes) {
+  final mb = bytes / (1024 * 1024);
+  return '${mb.toStringAsFixed(mb >= 10 ? 0 : 1)} MB selected';
 }
 
 List<PlayerRanking> _topRenters(AppStore store) {
