@@ -34,6 +34,7 @@ class AppStore extends ChangeNotifier {
   RealtimeChannel? _realtimeChannel;
   Timer? _clock;
   Timer? _refreshTimer;
+  Timer? _realtimeRefreshDebounce;
 
   bool get isAuthenticated => client.auth.currentUser != null;
   bool get isAdmin => currentProfile?.isAdmin ?? false;
@@ -46,7 +47,7 @@ class AppStore extends ChangeNotifier {
       notifications.where((notification) => !notification.isRead).length;
 
   Future<void> initialize() async {
-    _clock = Timer.periodic(const Duration(seconds: 1), (_) {
+    _clock = Timer.periodic(const Duration(minutes: 1), (_) {
       now = manilaNow;
       notifyListeners();
     });
@@ -71,6 +72,7 @@ class AppStore extends ChangeNotifier {
   void dispose() {
     _clock?.cancel();
     _refreshTimer?.cancel();
+    _realtimeRefreshDebounce?.cancel();
     _authSubscription?.cancel();
     final channel = _realtimeChannel;
     if (channel != null) {
@@ -848,27 +850,47 @@ class AppStore extends ChangeNotifier {
           event: PostgresChangeEvent.all,
           schema: 'public',
           table: 'bookings',
-          callback: (_) => unawaited(loadAll(quiet: true)),
+          callback: (_) => _scheduleRealtimeRefresh(),
         )
         .onPostgresChanges(
           event: PostgresChangeEvent.all,
           schema: 'public',
           table: 'notifications',
-          callback: (_) => unawaited(loadAll(quiet: true)),
+          callback: (_) => _scheduleRealtimeRefresh(),
         )
         .onPostgresChanges(
           event: PostgresChangeEvent.all,
           schema: 'public',
           table: 'courts',
-          callback: (_) => unawaited(loadAll(quiet: true)),
+          callback: (_) => _scheduleRealtimeRefresh(),
         )
         .onPostgresChanges(
           event: PostgresChangeEvent.all,
           schema: 'public',
           table: 'court_maintenance',
-          callback: (_) => unawaited(loadAll(quiet: true)),
+          callback: (_) => _scheduleRealtimeRefresh(),
+        )
+        .onPostgresChanges(
+          event: PostgresChangeEvent.all,
+          schema: 'public',
+          table: 'profiles',
+          callback: (_) => _scheduleRealtimeRefresh(),
+        )
+        .onPostgresChanges(
+          event: PostgresChangeEvent.all,
+          schema: 'public',
+          table: 'admin_activity_logs',
+          callback: (_) => _scheduleRealtimeRefresh(),
         )
         .subscribe();
+  }
+
+  void _scheduleRealtimeRefresh() {
+    if (!isAuthenticated) return;
+    _realtimeRefreshDebounce?.cancel();
+    _realtimeRefreshDebounce = Timer(const Duration(milliseconds: 450), () {
+      unawaited(loadAll(quiet: true));
+    });
   }
 
   void _clearSession() {

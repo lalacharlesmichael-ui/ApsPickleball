@@ -412,10 +412,12 @@ class _CustomerShellState extends State<CustomerShell> {
         icon: Icons.calendar_month_outlined,
         page: CourtAvailabilityPage(),
       ),
-      const _NavItem(
+      _NavItem(
         label: 'Bookings',
         icon: Icons.receipt_long_outlined,
-        page: MyBookingsPage(),
+        page: MyBookingsPage(
+          onBookPressed: () => setState(() => _selected = 2),
+        ),
       ),
       const _NavItem(
         label: 'Notifications',

@@ -1357,7 +1357,9 @@ class _CourtAvailabilityPageState extends State<CourtAvailabilityPage> {
 }
 
 class MyBookingsPage extends StatefulWidget {
-  const MyBookingsPage({super.key});
+  const MyBookingsPage({super.key, this.onBookPressed});
+
+  final VoidCallback? onBookPressed;
 
   @override
   State<MyBookingsPage> createState() => _MyBookingsPageState();
@@ -1439,7 +1441,7 @@ class _MyBookingsPageState extends State<MyBookingsPage> {
             message:
                 'Your reservations will appear here after you submit a booking request.',
             action: FilledButton.icon(
-              onPressed: () {},
+              onPressed: widget.onBookPressed,
               icon: const Icon(Icons.calendar_month_rounded),
               label: const Text('Use Book a Court'),
             ),

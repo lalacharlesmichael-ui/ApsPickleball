@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import 'app_scope.dart';
@@ -423,7 +425,7 @@ class MessageBanner extends StatelessWidget {
   }
 }
 
-class CountdownTimer extends StatelessWidget {
+class CountdownTimer extends StatefulWidget {
   const CountdownTimer({
     super.key,
     required this.end,
@@ -436,8 +438,51 @@ class CountdownTimer extends StatelessWidget {
   final bool compact;
 
   @override
+  State<CountdownTimer> createState() => _CountdownTimerState();
+}
+
+class _CountdownTimerState extends State<CountdownTimer> {
+  late DateTime _now;
+  Timer? _timer;
+
+  @override
+  void initState() {
+    super.initState();
+    _now = widget.now;
+    _startTimerIfNeeded();
+  }
+
+  @override
+  void didUpdateWidget(covariant CountdownTimer oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.end != widget.end || oldWidget.now != widget.now) {
+      _now = widget.now;
+      _startTimerIfNeeded();
+    }
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  void _startTimerIfNeeded() {
+    _timer?.cancel();
+    if (!widget.end.isAfter(_now)) return;
+    _timer = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (!mounted) return;
+      final next = manilaNow;
+      setState(() => _now = next);
+      if (!widget.end.isAfter(next)) {
+        _timer?.cancel();
+      }
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final remaining = end.difference(now);
+    final remaining = widget.end.difference(_now);
     final finished = !remaining.isNegative && remaining > Duration.zero
         ? false
         : true;
@@ -451,8 +496,8 @@ class CountdownTimer extends StatelessWidget {
         : AppTheme.successOnContainer(context);
     return Container(
       padding: EdgeInsets.symmetric(
-        horizontal: compact ? 8 : 12,
-        vertical: compact ? 5 : 8,
+        horizontal: widget.compact ? 8 : 12,
+        vertical: widget.compact ? 5 : 8,
       ),
       decoration: BoxDecoration(
         color: background,
@@ -463,7 +508,7 @@ class CountdownTimer extends StatelessWidget {
         children: [
           Icon(
             finished ? Icons.timer_off_rounded : Icons.timer_rounded,
-            size: compact ? 16 : 18,
+            size: widget.compact ? 16 : 18,
             color: foreground,
           ),
           const SizedBox(width: 7),
@@ -472,7 +517,7 @@ class CountdownTimer extends StatelessWidget {
             style: TextStyle(
               color: foreground,
               fontWeight: FontWeight.w900,
-              fontSize: compact ? 12 : 14,
+              fontSize: widget.compact ? 12 : 14,
             ),
           ),
         ],
