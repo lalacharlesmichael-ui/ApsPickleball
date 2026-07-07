@@ -3,9 +3,9 @@
     "short_name": "Aps Pickle Zone",
     "start_url": ".",
     "display": "standalone",
-    "background_color": "#F7FBF6",
-    "theme_color": "#168A4A",
-    "description": "Aps Pickle Zone court rental reservations, payments, and court operations.",
+    "background_color": "#061018",
+    "theme_color": "#5BEA7E",
+    "description": "Aps Pickle Zone court rentals, payments, personal progress, and court operations.",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

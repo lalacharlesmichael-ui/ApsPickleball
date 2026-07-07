@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:flutter_application_1/main.dart';
+import 'package:aps_pickle_zone/main.dart';
 
 void main() {
   testWidgets('shows a useful Supabase configuration error', (tester) async {

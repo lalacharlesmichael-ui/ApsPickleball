@@ -614,6 +614,122 @@ class AppStore extends ChangeNotifier {
     return rows;
   }
 
+  PersonalProgress get personalProgress {
+    final userBookings = myBookings;
+    final today = _dateOnly(now);
+    final startOfWeek = weekStart(now);
+    final startOfMonth = DateTime(now.year, now.month);
+    final endOfMonth = DateTime(now.year, now.month + 1, 0);
+    final trackedStatuses = {BookingStatus.completed, BookingStatus.active};
+    final completed = userBookings
+        .where((booking) => booking.status == BookingStatus.completed)
+        .toList();
+    final tracked = userBookings
+        .where((booking) => trackedStatuses.contains(booking.status))
+        .toList();
+
+    final dailyTotals = <DateTime, ({int bookings, int hours})>{};
+    final courtHours = <String, int>{};
+    for (final booking in tracked) {
+      final date = _dateOnly(booking.localStart);
+      final current = dailyTotals[date] ?? (bookings: 0, hours: 0);
+      dailyTotals[date] = (
+        bookings: current.bookings + 1,
+        hours: current.hours + booking.durationHours,
+      );
+      courtHours[booking.courtId] =
+          (courtHours[booking.courtId] ?? 0) + booking.durationHours;
+    }
+
+    final totalHours = tracked.fold(
+      0,
+      (sum, booking) => sum + booking.durationHours,
+    );
+    final weeklyHours = tracked
+        .where((booking) => !booking.localStart.isBefore(startOfWeek))
+        .fold(0, (sum, booking) => sum + booking.durationHours);
+    final monthlyHours = tracked
+        .where((booking) => !booking.localStart.isBefore(startOfMonth))
+        .fold(0, (sum, booking) => sum + booking.durationHours);
+    final activeDaysThisMonth = dailyTotals.keys
+        .where((date) => date.year == now.year && date.month == now.month)
+        .length;
+    final finishedBookings = userBookings
+        .where(
+          (booking) => {
+            BookingStatus.completed,
+            BookingStatus.cancelled,
+            BookingStatus.declined,
+          }.contains(booking.status),
+        )
+        .length;
+    final completionRate = finishedBookings == 0
+        ? (completed.isEmpty ? 0.0 : 1.0)
+        : completed.length / finishedBookings;
+    const monthlyGoalHours = 12;
+    final monthlyGoalProgress = _progressRatio(monthlyHours, monthlyGoalHours);
+    final streakProgress = _progressRatio(
+      _streakLength(dailyTotals.keys.toSet(), today),
+      5,
+    );
+    final activeDayProgress = _progressRatio(activeDaysThisMonth, 8);
+    final upcomingMomentum = upcomingBookings.isEmpty ? 0.0 : 1.0;
+    final productivityScore =
+        (monthlyGoalProgress * 42 +
+                completionRate * 24 +
+                activeDayProgress * 18 +
+                streakProgress * 10 +
+                upcomingMomentum * 6)
+            .round()
+            .clamp(0, 100);
+
+    String? favoriteCourtName;
+    if (courtHours.isNotEmpty) {
+      final topCourt = courtHours.entries.reduce(
+        (a, b) => a.value >= b.value ? a : b,
+      );
+      favoriteCourtName = courts
+          .where((court) => court.id == topCourt.key)
+          .firstOrNull
+          ?.courtName;
+    }
+
+    return PersonalProgress(
+      totalSessions: tracked.length,
+      completedSessions: completed.length,
+      totalHours: totalHours,
+      weeklyHours: weeklyHours,
+      monthlyHours: monthlyHours,
+      monthlyGoalHours: monthlyGoalHours,
+      activeDaysThisMonth: activeDaysThisMonth,
+      currentStreakDays: _streakLength(dailyTotals.keys.toSet(), today),
+      bestStreakDays: _bestStreakLength(dailyTotals.keys),
+      upcomingSessions: upcomingBookings.length,
+      pendingSessions: userBookings
+          .where((booking) => booking.status == BookingStatus.pending)
+          .length,
+      verifiedSpend: userBookings
+          .where(
+            (booking) =>
+                booking.isBillable &&
+                booking.paymentStatus == PaymentStatus.verified,
+          )
+          .fold(0, (sum, booking) => sum + booking.totalAmount),
+      completionRate: completionRate.clamp(0.0, 1.0).toDouble(),
+      productivityScore: productivityScore,
+      monthlyActivity: [
+        for (var day = 1; day <= endOfMonth.day; day++)
+          DailyActivity(
+            date: DateTime(now.year, now.month, day),
+            bookingCount:
+                dailyTotals[DateTime(now.year, now.month, day)]?.bookings ?? 0,
+            hours: dailyTotals[DateTime(now.year, now.month, day)]?.hours ?? 0,
+          ),
+      ],
+      favoriteCourtName: favoriteCourtName,
+    );
+  }
+
   int get totalCustomers => customers.length;
   int get pendingBookings => bookings
       .where((booking) => booking.status == BookingStatus.pending)
@@ -790,4 +906,44 @@ extension FirstOrNullExtension<E> on Iterable<E> {
     if (iterator.moveNext()) return iterator.current;
     return null;
   }
+}
+
+DateTime _dateOnly(DateTime value) {
+  return DateTime(value.year, value.month, value.day);
+}
+
+double _progressRatio(num value, num target) {
+  if (target <= 0) return 0;
+  return (value / target).clamp(0.0, 1.0).toDouble();
+}
+
+int _streakLength(Set<DateTime> activeDates, DateTime today) {
+  if (activeDates.isEmpty) return 0;
+  var cursor = activeDates.contains(today)
+      ? today
+      : today.subtract(const Duration(days: 1));
+  var streak = 0;
+  while (activeDates.contains(cursor)) {
+    streak += 1;
+    cursor = cursor.subtract(const Duration(days: 1));
+  }
+  return streak;
+}
+
+int _bestStreakLength(Iterable<DateTime> dates) {
+  final sorted = dates.toSet().toList()..sort();
+  if (sorted.isEmpty) return 0;
+  var best = 1;
+  var current = 1;
+  for (var i = 1; i < sorted.length; i++) {
+    final previous = sorted[i - 1];
+    final expected = previous.add(const Duration(days: 1));
+    if (sorted[i] == expected) {
+      current += 1;
+      if (current > best) best = current;
+    } else {
+      current = 1;
+    }
+  }
+  return best;
 }

@@ -5,10 +5,10 @@ Aps Pickle Zone is a Flutter Pickleball Court Rental Management System backed by
 ## Features
 
 - Public landing, about, rates, login, and registration pages
-- Customer dashboard, court booking, availability schedule, booking history, payment-proof upload, notifications, leaderboard, and profile editing
+- Customer dashboard, personal progress and productivity tracking, court booking, availability schedule, booking history, payment-proof upload, notifications, leaderboard, and profile editing
 - Admin dashboard, booking verification, customer management, court status controls, active rental monitor, reports, maintenance scheduling, leaderboard, and activity logs
 - Exactly 3 seeded courts: Court 1, Court 2, and Court 3
-- Court rate: ₱250.00 per court per hour
+- Court rate: PHP 250.00 per court per hour
 - Asia/Manila booking calculations and live rental countdowns
 - Private Supabase Storage buckets for payment proofs and profile images
 - SQL validation to prevent overlapping pending, approved, or active bookings
@@ -76,6 +76,22 @@ C:\flutter\bin\flutter.bat pub get
 C:\flutter\bin\flutter.bat analyze
 C:\flutter\bin\flutter.bat test
 ```
+
+## Installable Dynamic Web App
+
+Build the dynamic installable web app as a PWA:
+
+```powershell
+C:\flutter\bin\flutter.bat build web --release
+```
+
+Deploy the generated `build/web` folder to Vercel, Netlify, Firebase Hosting, or any static host. The web app stays dynamic through Supabase Auth, PostgreSQL, Storage, and Realtime updates, and it includes a web manifest, mobile viewport metadata, app icons, and standalone display mode so users can install it from supported browsers.
+
+```powershell
+C:\flutter\bin\flutter.bat run -d web-server --web-hostname 127.0.0.1 --web-port 8080
+```
+
+Use the local web-server command when you want a live development preview.
 
 ## Business Rules
 

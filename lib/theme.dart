@@ -7,6 +7,13 @@ class AppColors {
   static const Color green600 = Color(0xFF168A4A);
   static const Color green100 = Color(0xFFDFF3E7);
   static const Color green50 = Color(0xFFF2FAF5);
+  static const Color night = Color(0xFF061018);
+  static const Color nightElevated = Color(0xFF111B24);
+  static const Color nightCard = Color(0xFF1B2530);
+  static const Color nightCardAlt = Color(0xFF25313B);
+  static const Color neonGreen = Color(0xFF5BEA7E);
+  static const Color mint = Color(0xFFA8F2BC);
+  static const Color blush = Color(0xFFFFB7C8);
   static const Color ink = Color(0xFF14221B);
   static const Color muted = Color(0xFF62746B);
   static const Color line = Color(0xFFD9E8DF);
@@ -53,16 +60,16 @@ class AppTheme {
 
   static ThemeData get darkTheme => _buildTheme(
     brightness: Brightness.dark,
-    canvas: const Color(0xFF0B1210),
-    surface: const Color(0xFF121D18),
-    surfaceAlt: const Color(0xFF192820),
-    text: const Color(0xFFEAF5EE),
-    muted: const Color(0xFFA9B8AF),
-    line: const Color(0xFF2C4136),
-    primary: const Color(0xFF5BD78E),
+    canvas: AppColors.night,
+    surface: AppColors.nightElevated,
+    surfaceAlt: AppColors.nightCard,
+    text: const Color(0xFFF1F7F3),
+    muted: const Color(0xFFA7B4BE),
+    line: const Color(0xFF263542),
+    primary: AppColors.neonGreen,
     onPrimary: const Color(0xFF062014),
-    primaryContainer: const Color(0xFF123C28),
-    onPrimaryContainer: const Color(0xFFD8F8E3),
+    primaryContainer: const Color(0xFF183825),
+    onPrimaryContainer: const Color(0xFFD8FBE2),
     secondaryContainer: const Color(0xFF483715),
     onSecondaryContainer: const Color(0xFFFFE6A3),
     tertiary: const Color(0xFF83CAFF),
@@ -102,7 +109,7 @@ class AppTheme {
   static Color? adaptiveSurfaceColor(BuildContext context, Color? color) {
     if (color == null || !isDark(context)) return color;
     if (color == AppColors.green50 || color == AppColors.green100) {
-      return const Color(0xFF142A1D);
+      return const Color(0xFF183825);
     }
     return color;
   }
@@ -255,6 +262,7 @@ class AppTheme {
       ),
       navigationRailTheme: NavigationRailThemeData(
         backgroundColor: surface,
+        indicatorColor: primaryContainer,
         selectedIconTheme: IconThemeData(color: primary),
         selectedLabelTextStyle: TextStyle(
           color: primary,

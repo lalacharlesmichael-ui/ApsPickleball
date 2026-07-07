@@ -135,7 +135,7 @@ class ApsPickleZoneApp extends StatefulWidget {
 
 class _ApsPickleZoneAppState extends State<ApsPickleZoneApp> {
   final SharedPreferencesAsync _preferences = SharedPreferencesAsync();
-  bool _darkMode = false;
+  bool _darkMode = true;
 
   @override
   void initState() {
@@ -392,10 +392,15 @@ class _CustomerShellState extends State<CustomerShell> {
         label: 'Dashboard',
         icon: Icons.dashboard_outlined,
         page: CustomerDashboard(
-          onBookPressed: () => setState(() => _selected = 1),
-          onBookingsPressed: () => setState(() => _selected = 3),
-          onNotificationsPressed: () => setState(() => _selected = 4),
+          onBookPressed: () => setState(() => _selected = 2),
+          onBookingsPressed: () => setState(() => _selected = 4),
+          onNotificationsPressed: () => setState(() => _selected = 5),
         ),
+      ),
+      const _NavItem(
+        label: 'Progress',
+        icon: Icons.insights_outlined,
+        page: PersonalProgressPage(),
       ),
       const _NavItem(
         label: 'Book',

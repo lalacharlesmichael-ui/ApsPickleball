@@ -443,3 +443,60 @@ class PlayerRanking {
     );
   }
 }
+
+class DailyActivity {
+  const DailyActivity({
+    required this.date,
+    required this.bookingCount,
+    required this.hours,
+  });
+
+  final DateTime date;
+  final int bookingCount;
+  final int hours;
+
+  bool get hasActivity => bookingCount > 0 || hours > 0;
+}
+
+class PersonalProgress {
+  const PersonalProgress({
+    required this.totalSessions,
+    required this.completedSessions,
+    required this.totalHours,
+    required this.weeklyHours,
+    required this.monthlyHours,
+    required this.monthlyGoalHours,
+    required this.activeDaysThisMonth,
+    required this.currentStreakDays,
+    required this.bestStreakDays,
+    required this.upcomingSessions,
+    required this.pendingSessions,
+    required this.verifiedSpend,
+    required this.completionRate,
+    required this.productivityScore,
+    required this.monthlyActivity,
+    this.favoriteCourtName,
+  });
+
+  final int totalSessions;
+  final int completedSessions;
+  final int totalHours;
+  final int weeklyHours;
+  final int monthlyHours;
+  final int monthlyGoalHours;
+  final int activeDaysThisMonth;
+  final int currentStreakDays;
+  final int bestStreakDays;
+  final int upcomingSessions;
+  final int pendingSessions;
+  final double verifiedSpend;
+  final double completionRate;
+  final int productivityScore;
+  final List<DailyActivity> monthlyActivity;
+  final String? favoriteCourtName;
+
+  double get monthlyGoalProgress {
+    if (monthlyGoalHours <= 0) return 0;
+    return (monthlyHours / monthlyGoalHours).clamp(0.0, 1.0).toDouble();
+  }
+}
