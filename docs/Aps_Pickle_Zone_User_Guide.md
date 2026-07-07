@@ -1,6 +1,8 @@
 # Aps Pickle Zone User Guide
 
-Version: 1.0
+Version: 1.1
+
+This guide is a step-by-step manual for customers, admins, and system owners. Red circles in the interface images show the exact button, field, or content area to use.
 
 ## 1. Overview
 
@@ -38,14 +40,106 @@ Admins can:
 - Review revenue reports and booking summaries.
 - View activity logs.
 
-## 3. Accessing the App
+## 3. Visual Step-by-Step Customer Guide
+
+### Customer Dashboard
+
+![Annotated customer dashboard](guide_images/01_customer_dashboard.png)
+
+1. Select Book a Court to create a new reservation.
+2. Check recent admin messages and booking updates in Notifications.
+3. Use Dashboard and Progress to monitor court hours, streaks, and productivity.
+
+### Book a Court
+
+![Annotated booking form](guide_images/02_book_court.png)
+
+1. Select the court, date, start time, and duration.
+2. Confirm the slot is available.
+3. Select Submit Booking Request.
+
+Booking rules:
+
+- Court rate is PHP 250.00 per hour.
+- Default maximum booking duration is 4 hours.
+- Bookings can run up to 11:00 PM.
+- Pending, approved, and active bookings block overlapping reservations.
+- Maintenance blocks prevent booking affected courts.
+
+### Bookings and Payment Proof
+
+![Annotated booking and payment proof screen](guide_images/03_booking_payment.png)
+
+1. Open Bookings.
+2. Select the booking row.
+3. Choose a JPG, PNG, or PDF payment proof.
+4. Select Upload Proof.
+5. Use Print Receipt when the booking is billable.
+
+Payment proof files must be 8 MB or smaller.
+
+### Client Notifications
+
+![Annotated client notifications](guide_images/04_notifications.png)
+
+1. Open Notifications to view booking updates and admin messages.
+2. Admin messages appear as full content cards.
+3. Use Mark Read or Mark All Read to clear unread indicators.
+
+### Profile Update
+
+![Annotated profile update screen](guide_images/05_profile_update.png)
+
+1. Open Profile.
+2. Select Change Profile Photo to choose a JPG or PNG image.
+3. Edit full name or contact number if needed.
+4. Select Save Profile.
+
+Profile photos must be 15 MB or smaller. The image preview updates immediately after selection and after saving.
+
+## 4. Visual Step-by-Step Admin Guide
+
+### Admin Booking Review
+
+![Annotated admin booking review](guide_images/06_admin_bookings.png)
+
+1. Open Bookings or select a recent request from the Admin Dashboard.
+2. Review the booking details and payment proof.
+3. Select Approve for valid paid bookings.
+4. Select Decline or Cancel when needed and include an admin note.
+5. Select Complete when the rental is finished.
+
+### Customer Management and Direct Messages
+
+![Annotated admin customer notification](guide_images/07_admin_customers_notify.png)
+
+1. Open Customers.
+2. Review customer profile photos, contact details, bookings, and payments.
+3. Select Notify.
+4. Add a title and message.
+5. Select Send.
+
+The message appears in the customer's Notifications page as a full admin message card.
+
+### Reports and Maintenance
+
+![Annotated reports and maintenance](guide_images/08_reports_maintenance.png)
+
+1. Open Reports to review income, top renters, most rented court, and booking status summaries.
+2. Open Maintenance to block court time for repairs or private events.
+3. Select court, date, time, duration, and reason.
+4. Select Schedule Maintenance.
+
+Maintenance blocks prevent new bookings in the affected time range.
+
+## 5. Accessing the App
 
 1. Open the web app URL provided by the owner or deployment host.
 2. Use the navigation menu to go to Login or Register.
 3. On mobile, open the side menu from the app bar.
 4. On supported browsers, install the app from the browser install prompt or menu.
 
-## 4. Customer Guide
+## 6. Customer Reference
 
 ### Register an Account
 
@@ -63,34 +157,6 @@ Usernames must use lowercase letters, numbers, dots, dashes, or underscores.
 3. Select Login.
 
 If login fails, confirm the account exists and that Supabase email confirmation is disabled or the account has been confirmed by the owner.
-
-### Book a Court
-
-1. Open Book.
-2. Select a court.
-3. Select the booking date.
-4. Select the start time.
-5. Select the number of hours.
-6. Confirm the slot is available.
-7. Select Submit Booking Request.
-
-Booking rules:
-
-- Court rate is PHP 250.00 per hour.
-- Default maximum booking duration is 4 hours.
-- Bookings can run up to 11:00 PM.
-- Pending, approved, and active bookings block overlapping reservations.
-- Maintenance blocks prevent booking affected courts.
-
-### Upload Payment Proof
-
-1. Open Bookings.
-2. Select the booking.
-3. In Payment Proof, select a JPG, PNG, or PDF file.
-4. Select Upload Proof.
-5. Wait for admin verification.
-
-Payment proof files must be 8 MB or smaller.
 
 ### Track Bookings
 
@@ -110,16 +176,6 @@ Statuses include Pending, Approved, Active, Completed, Cancelled, and Declined.
 
 Open Schedule to view court availability by date. Green slots are open. Busy, maintenance, or closed slots cannot be booked.
 
-### Notifications
-
-Open Notifications to see:
-
-- Booking updates.
-- Time reminders.
-- Admin messages.
-
-Admin messages display as full message cards so the content is easy to read. Use Mark All Read or the check button to clear unread indicators.
-
 ### Personal Progress
 
 Open Progress to track:
@@ -133,18 +189,7 @@ Open Progress to track:
 - Verified spend.
 - Favorite court.
 
-The Dashboard also shows a quick progress summary and recent notifications.
-
-### Update Profile
-
-1. Open Profile.
-2. Edit full name or contact number.
-3. Select Change Profile Photo to choose a JPG or PNG image.
-4. Select Save Profile.
-
-Profile photos must be 15 MB or smaller. The image preview updates immediately after selection and after saving.
-
-## 5. Admin Guide
+## 7. Admin Reference
 
 ### Admin Dashboard
 
@@ -160,35 +205,6 @@ The Admin Dashboard shows:
 - Active rental countdowns.
 - Player of the Week.
 
-### Review Bookings
-
-1. Open Bookings.
-2. Search or filter by status, court, or date range.
-3. Select a booking to view details.
-4. Review payment proof if uploaded.
-5. Select Approve, Decline, Cancel, or Complete when appropriate.
-
-Admin notes are shown to the customer on the booking details page.
-
-### Customer Management
-
-Open Customers to:
-
-- Search customer profiles.
-- View customer profile photos.
-- View booking count, rental hours, and verified payments.
-- Review recent bookings.
-- Send direct notifications.
-
-### Send Customer Notifications
-
-1. Open Customers.
-2. Select Notify on the customer card.
-3. Enter a title and message.
-4. Select Send.
-
-The message appears in the customer's Notifications page as a full admin message card.
-
 ### Court Management
 
 Open Courts to:
@@ -200,34 +216,19 @@ Open Courts to:
 
 ### Active Rentals
 
-Open Active to see live countdown timers for rentals currently in progress. Timers update smoothly without requiring manual refresh.
-
-### Reports
-
-Open Reports to review:
-
-- Daily income.
-- Weekly income.
-- Monthly income.
-- Most rented court.
-- Top renters.
-- Booking status summary.
-
-### Maintenance Scheduling
-
-Open Maintenance to block court time for maintenance or private events. Maintenance blocks prevent new bookings in the affected time range.
+Open Active to see live countdown timers for rentals currently in play. Timers update smoothly without requiring manual refresh.
 
 ### Activity Logs
 
 Open Logs to review important admin actions.
 
-## 6. Real-Time Behavior
+## 8. Real-Time Behavior
 
 The app uses Supabase Realtime for key data updates. Booking changes, notifications, court updates, maintenance changes, profile changes, and admin activity updates refresh quietly in the background.
 
 The app also reduces unnecessary full-screen refreshes. Countdown timers update locally, while data changes are debounced to avoid repeated reloads.
 
-## 7. Setup Notes for Owners
+## 9. Setup Notes for Owners
 
 ### Supabase Setup
 
@@ -275,7 +276,7 @@ build/web
 
 Supported hosts include Vercel, Netlify, Firebase Hosting, and other static hosts.
 
-## 8. Troubleshooting
+## 10. Troubleshooting
 
 ### Profile Photo Does Not Upload
 
@@ -303,7 +304,7 @@ set role = 'admin'
 where username = 'your_admin_username';
 ```
 
-## 9. Recommended Client Handover Checklist
+## 11. Recommended Client Handover Checklist
 
 - Confirm Supabase URL and anon key are configured.
 - Register one admin account.
@@ -315,4 +316,3 @@ where username = 'your_admin_username';
 - Confirm realtime notification display.
 - Confirm web app installation from browser.
 - Confirm reports and active timers work.
-
