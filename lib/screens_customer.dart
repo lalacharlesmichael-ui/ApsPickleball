@@ -907,17 +907,12 @@ class _NotificationsPanel extends StatelessWidget {
             const Text('No notifications yet.')
           else
             ...notifications.map(
-              (notification) => ListTile(
-                contentPadding: EdgeInsets.zero,
-                dense: true,
-                leading: Icon(
-                  notification.isRead
-                      ? Icons.mark_email_read_outlined
-                      : Icons.mark_email_unread_outlined,
-                  color: AppColors.neonGreen,
+              (notification) => Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: _ClientNotificationCard(
+                  notification: notification,
+                  compact: true,
                 ),
-                title: Text(notification.title),
-                subtitle: Text(notification.message),
               ),
             ),
         ],
@@ -1766,34 +1761,155 @@ class NotificationsPage extends StatelessWidget {
           ...store.notifications.map(
             (notification) => Padding(
               padding: const EdgeInsets.only(bottom: 10),
-              child: AppCard(
-                color: notification.isRead ? null : AppColors.green50,
-                child: ListTile(
-                  contentPadding: EdgeInsets.zero,
-                  leading: Icon(
-                    notification.isRead
-                        ? Icons.notifications_none_rounded
-                        : Icons.notifications_active_rounded,
-                    color: AppColors.green600,
-                  ),
-                  title: Text(notification.title),
-                  subtitle: Text(
-                    '${notification.message}\n${formatDateTime(notification.createdAt)}',
-                  ),
-                  isThreeLine: true,
-                  trailing: notification.isRead
-                      ? null
-                      : IconButton(
-                          tooltip: 'Mark read',
-                          onPressed: () =>
-                              store.markNotificationRead(notification),
-                          icon: const Icon(Icons.check_rounded),
-                        ),
-                ),
+              child: _ClientNotificationCard(
+                notification: notification,
+                onMarkRead: notification.isRead
+                    ? null
+                    : () => store.markNotificationRead(notification),
               ),
             ),
           ),
       ],
+    );
+  }
+}
+
+class _ClientNotificationCard extends StatelessWidget {
+  const _ClientNotificationCard({
+    required this.notification,
+    this.onMarkRead,
+    this.compact = false,
+  });
+
+  final AppNotification notification;
+  final VoidCallback? onMarkRead;
+  final bool compact;
+
+  bool get _isAdminMessage => notification.type == 'admin_message';
+
+  @override
+  Widget build(BuildContext context) {
+    return AppCard(
+      color: notification.isRead ? null : AppColors.green50,
+      padding: EdgeInsets.all(compact ? 12 : 16),
+      child: _isAdminMessage
+          ? _AdminMessageNotificationContent(
+              notification: notification,
+              onMarkRead: onMarkRead,
+              compact: compact,
+            )
+          : _SystemNotificationContent(
+              notification: notification,
+              onMarkRead: onMarkRead,
+              compact: compact,
+            ),
+    );
+  }
+}
+
+class _AdminMessageNotificationContent extends StatelessWidget {
+  const _AdminMessageNotificationContent({
+    required this.notification,
+    required this.onMarkRead,
+    required this.compact,
+  });
+
+  final AppNotification notification;
+  final VoidCallback? onMarkRead;
+  final bool compact;
+
+  @override
+  Widget build(BuildContext context) {
+    final bodyStyle = compact
+        ? Theme.of(context).textTheme.bodyMedium
+        : Theme.of(context).textTheme.bodyLarge;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              width: compact ? 34 : 42,
+              height: compact ? 34 : 42,
+              decoration: BoxDecoration(
+                color: AppTheme.iconTileBackground(context),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Icon(
+                Icons.admin_panel_settings_outlined,
+                color: AppTheme.iconTileForeground(context),
+                size: compact ? 19 : 22,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    notification.title,
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
+                  const SizedBox(height: 3),
+                  Text(
+                    'Message from admin - ${formatDateTime(notification.createdAt)}',
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                ],
+              ),
+            ),
+            if (onMarkRead != null)
+              IconButton(
+                tooltip: 'Mark read',
+                onPressed: onMarkRead,
+                icon: const Icon(Icons.check_rounded),
+              ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        Text(notification.message, style: bodyStyle),
+      ],
+    );
+  }
+}
+
+class _SystemNotificationContent extends StatelessWidget {
+  const _SystemNotificationContent({
+    required this.notification,
+    required this.onMarkRead,
+    required this.compact,
+  });
+
+  final AppNotification notification;
+  final VoidCallback? onMarkRead;
+  final bool compact;
+
+  @override
+  Widget build(BuildContext context) {
+    return ListTile(
+      contentPadding: EdgeInsets.zero,
+      dense: compact,
+      leading: Icon(
+        notification.isRead
+            ? Icons.notifications_none_rounded
+            : Icons.notifications_active_rounded,
+        color: AppColors.green600,
+      ),
+      title: Text(notification.title),
+      subtitle: Text(
+        compact
+            ? notification.message
+            : '${notification.message}\n${formatDateTime(notification.createdAt)}',
+      ),
+      isThreeLine: !compact,
+      trailing: onMarkRead == null
+          ? null
+          : IconButton(
+              tooltip: 'Mark read',
+              onPressed: onMarkRead,
+              icon: const Icon(Icons.check_rounded),
+            ),
     );
   }
 }
